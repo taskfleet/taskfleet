@@ -48,7 +48,7 @@ func TestServerMTLS(t *testing.T) {
 	config, err := serverTLS.Config()
 	require.Nil(t, err)
 	assert.Len(t, config.Certificates, 1)
-	assert.Len(t, config.ClientCAs.Subjects(), 1)
+	assert.Len(t, config.ClientCAs.Subjects(), 1) // nolint:staticcheck
 	assert.Equal(t, config.ClientAuth, tls.RequireAndVerifyClientCert)
 }
 
@@ -73,7 +73,7 @@ func TestClientTLS(t *testing.T) {
 
 	config, err := clientTLS.Config()
 	require.Nil(t, err)
-	assert.Len(t, config.RootCAs.Subjects(), 1)
+	assert.Len(t, config.RootCAs.Subjects(), 1) // nolint:staticcheck
 }
 
 func TestClientMTLS(t *testing.T) {
@@ -89,7 +89,7 @@ func TestClientMTLS(t *testing.T) {
 
 	config, err := clientTLS.Config()
 	require.Nil(t, err)
-	assert.Len(t, config.RootCAs.Subjects(), 1)
+	assert.Len(t, config.RootCAs.Subjects(), 1) // nolint:staticcheck
 	assert.Len(t, config.Certificates, 1)
 	assert.Equal(t, "test", config.ServerName)
 }

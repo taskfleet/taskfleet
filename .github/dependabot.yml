@@ -5,12 +5,12 @@ updates:
     open-pull-requests-limit: 5
     package-ecosystem: github-actions
     schedule:
-      internal: weekly
+      interval: weekly
       day: saturday
   # Update Go dependencies
   - directory: /
     open-pull-requests-limit: 5
     package-ecosystem: gomod
     schedule:
-      internal: weekly
+      interval: weekly
       day: saturday

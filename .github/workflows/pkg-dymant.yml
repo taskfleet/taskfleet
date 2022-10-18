@@ -59,6 +59,8 @@ jobs:
             grep -q "Kafka Server started (kafka.server.KafkaRaftServer)"; do sleep 10; done
       - name: Run tests
         run: go test ./packages/dymant/... -race -coverprofile=coverage.out -covermode=atomic
+        env:
+          KAFKA_BOOTSTRAP_SERVER: localhost:9092
       - name: Upload to codecov
         uses: codecov/codecov-action@v3
         with:
