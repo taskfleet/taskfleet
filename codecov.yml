@@ -19,5 +19,7 @@ flags:
     carryforward: true
   eagle:
     paths:
-      - packages/eagle/*
+      - packages/eagle/**
+    ignore:
+      - packages/eagle/internal/**
     carryforward: true

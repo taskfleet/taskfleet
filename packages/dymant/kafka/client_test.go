@@ -103,7 +103,7 @@ func subscribeMessages(
 ) {
 	defer wg.Done()
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
 	count := 0
