@@ -15,11 +15,11 @@ comment:
 flags:
   dymant:
     paths:
-      - packages/dymant/**/*
+      - packages/dymant
     carryforward: true
   eagle:
     paths:
-      - packages/eagle/**/*
+      - packages/eagle
     ignore:
-      - packages/eagle/internal/**/*
+      - packages/eagle/internal
     carryforward: true
