@@ -1,0 +1,23 @@
+coverage:
+  range: 50..90
+  round: nearest
+  precision: 2
+  status:
+    project:
+      default:
+        target: 60%
+    patch:
+      default:
+        target: 60%
+comment:
+  layout: header,reach,diff,flags,files,footer
+  require_changes: false
+flags:
+  dymant:
+    paths:
+      - packages/dymant/**
+    carryforward: true
+  eagle:
+    paths:
+      - packages/eagle/**
+    carryforward: true

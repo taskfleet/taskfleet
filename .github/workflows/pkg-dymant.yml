@@ -1,0 +1,66 @@
+name: Package Dymant
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - packages/dymant/**
+      - packages/eagle/**
+      - .github/workflows/pkg-dymant.yaml
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Lint Code
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.50
+          working-directory: packages/dymant
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      kafka:
+        image: bitnami/kafka:3.3.1
+        env:
+          KAFKA_ENABLE_KRAFT: yes
+          KAFKA_CFG_PROCESS_ROLES: broker,controller
+          KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+          KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+          KAFKA_BROKER_ID: 1
+          KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
+          ALLOW_PLAINTEXT_LISTENER: yes
+        ports:
+          - 9092:9092
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Wait for Kafka
+        run: |
+          until docker logs "${{ job.services.kafka.id }}" 2>&1 | \
+            grep -q "Kafka Server started (kafka.server.KafkaRaftServer)"; do sleep 10; done
+      - name: Run tests
+        run: go test ./packages/dymant/... -race -coverprofile=coverage.out -covermode=atomic
+      - name: Upload to codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.out
+          flags: dymant

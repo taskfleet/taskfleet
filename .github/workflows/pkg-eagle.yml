@@ -1,0 +1,46 @@
+name: Package Eagle
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - packages/eagle/**
+      - .github/workflows/pkg-eagle.yaml
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Lint Code
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.50
+          working-directory: packages/eagle
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Run Tests
+        run: go test ./packages/eagle/... -race -coverprofile=coverage.out -covermode=atomic
+      - name: Upload to codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage.out
+          flags: eagle
