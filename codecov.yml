@@ -1,7 +1,7 @@
 codecov:
   branch: main
 coverage:
-  range: 30..90
+  range: 30..70
   round: nearest
   precision: 2
   status:
