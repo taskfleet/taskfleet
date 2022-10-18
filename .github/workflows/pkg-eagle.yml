@@ -1,8 +1,6 @@
 name: Package Eagle
 on:
   pull_request:
-    branches:
-      - main
     paths:
       - packages/eagle/**
       - .github/workflows/pkg-eagle.yaml

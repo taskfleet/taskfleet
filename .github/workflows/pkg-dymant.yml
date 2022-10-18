@@ -1,8 +1,6 @@
 name: Package Dymant
 on:
   pull_request:
-    branches:
-      - main
     paths:
       - packages/dymant/**
       - packages/eagle/**
