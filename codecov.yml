@@ -12,14 +12,14 @@ coverage:
 comment:
   layout: header,reach,diff,flags,files,footer
   require_changes: false
-ignore:
-  - packages/eagle/internal/**
 flags:
   dymant:
     paths:
-      - packages/dymant/**
+      - packages/dymant/**/*
     carryforward: true
   eagle:
     paths:
-      - packages/eagle/**
+      - packages/eagle/**/*
+    ignore:
+      - packages/eagle/internal/**/*
     carryforward: true
