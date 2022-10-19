@@ -1,0 +1,19 @@
+codecov:
+  branch: main
+coverage:
+  range: 30..70
+  round: nearest
+  precision: 2
+  status:
+    project:
+      default:
+        target: auto
+    patch:
+      default:
+        target: auto
+comment:
+  layout: header,reach,diff,flags,files,footer
+  require_changes: false
+flag_management:
+  default_rules:
+    carryforward: true
