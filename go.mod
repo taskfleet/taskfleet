@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.23.0
+	golang.org/x/exp v0.0.0-20221019170559-20944726eadf
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
 	google.golang.org/protobuf v1.28.1
 )
