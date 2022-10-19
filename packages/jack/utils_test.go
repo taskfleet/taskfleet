@@ -24,3 +24,8 @@ func TestMustError(t *testing.T) {
 	err := fmt.Errorf("this is an error")
 	Must(x, err)
 }
+
+func TestPtr(t *testing.T) {
+	v := 3
+	assert.Equal(t, &v, Ptr(v))
+}
