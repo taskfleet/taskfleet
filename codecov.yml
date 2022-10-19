@@ -17,3 +17,5 @@ comment:
 flag_management:
   default_rules:
     carryforward: true
+ignore:
+  - packages/dymant/kafka/publisher.go
