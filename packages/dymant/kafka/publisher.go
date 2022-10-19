@@ -86,8 +86,8 @@ func (p *publisher) PublishSync(ctx context.Context, key uuid.UUID, message prot
 }
 
 func (p *publisher) Flush(ctx context.Context) error {
+	defer p.producer.Close()
 	p.flush <- ctx
-	p.producer.Close()
 	return <-p.done
 }
 
@@ -96,6 +96,7 @@ func (p *publisher) Flush(ctx context.Context) error {
 //-------------------------------------------------------------------------------------------------
 
 func (p *publisher) logMessages() {
+	ch := make(chan error, 1)
 	for {
 		select {
 		case event := <-p.producer.Events():
@@ -103,27 +104,31 @@ func (p *publisher) logMessages() {
 				logProduced(p.logger, msg)
 			}
 		case ctx := <-p.flush:
-			if err := p.awaitRemaining(ctx); err != nil {
+			// We need to execute this in a goroutine since we need to poll the `Events` channel
+			// to deplete the producer's buffer.
+			go func() {
+				ch <- p.awaitRemaining(ctx)
+			}()
+		case err := <-ch:
+			// This is essentially an asynchronous continuation of the case above
+			if err != nil {
 				p.logger.Error("failed to flush remaining messages", zap.Error(err))
-				p.done <- err
-			} else {
-				p.done <- nil
 			}
+			p.done <- err
 			return
 		}
 	}
 }
 
 func (p *publisher) awaitRemaining(ctx context.Context) error {
-	for p.producer.Len() > 0 {
+	waiting := p.producer.Len()
+	for waiting > 0 {
 		if ctx.Err() != nil {
-			return fmt.Errorf("context cancelled (%s), failed to publish %d messages",
-				ctx.Err(), p.producer.Len(),
-			)
+			return fmt.Errorf("%s, failed to publish %d messages", ctx.Err(), waiting)
 		}
 		// We flush with a timeout of 100ms -- this equals the default timeout of the Flush method.
 		// Afterwards, we can check for the context to be cancelled again
-		p.producer.Flush(100)
+		waiting = p.producer.Flush(100)
 	}
 	return nil
 }

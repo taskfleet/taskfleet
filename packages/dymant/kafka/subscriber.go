@@ -44,7 +44,7 @@ func newSubscriber(
 
 	// Initialize buffer
 	var buf []proto.Message
-	if subscriberConfig.batchAggregation < 0 || subscriberConfig.batchBufferSize < 0 {
+	if subscriberConfig.batchAggregation <= 0 || subscriberConfig.batchBufferSize <= 0 {
 		buf = make([]proto.Message, 0, 1)
 	} else {
 		buf = make([]proto.Message, 0, subscriberConfig.batchBufferSize)

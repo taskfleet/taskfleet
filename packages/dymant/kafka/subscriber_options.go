@@ -89,7 +89,7 @@ type subscriberOptionBatchConfig struct {
 // more messages being replayed/lost (depending on the selected delivery guarantees) in case of
 // failure. If the buffer is filled before the aggregation duration is reached, the messages are
 // delivered right away. You should set the aggregation to a value which satisfies your
-// requirements.  If this field is set to a negative value, messages are not aggregated, i.e.
+// requirements. If this field is set to a negative value, messages are not aggregated, i.e.
 // single messages are delivered to the client. This automatically sets the buffer size to 1
 // regardless of the configuration. Processing single messages might be useful if processing a
 // message is very costly.
