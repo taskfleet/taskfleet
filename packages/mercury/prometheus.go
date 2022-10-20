@@ -34,11 +34,21 @@ func (p *Prometheus) Run(ctx context.Context) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		zeus.Logger(ctx).Info("http server started", zap.Uint16("port", p.port))
-		return s.ListenAndServe()
+		err := s.ListenAndServe()
+		switch err {
+		case http.ErrServerClosed:
+			// This is not actually an error, but rather a "graceful shutdown"
+			return nil
+		default:
+			return err
+		}
 	})
 	eg.Go(func() error {
 		<-ctx.Done()
-		return s.Shutdown(ctx)
+		if err := s.Shutdown(ctx); err != nil {
+			zeus.Logger(ctx).Debug("failed to shut down http server", zap.Error(err))
+		}
+		return ctx.Err()
 	})
 	err := eg.Wait()
 	zeus.Logger(ctx).Debug("http server exited")
