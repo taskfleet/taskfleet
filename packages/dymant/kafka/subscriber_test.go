@@ -17,7 +17,7 @@ func TestMultipleSubscribers(t *testing.T) {
 	group := uuid.NewString()
 	subscriber := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
 
-	n := 5000 // Need to publish many messages to ensure that subscribers use consumer group
+	n := 500 // Need to publish many messages to ensure that subscribers use consumer group
 	publisher.publishN(5*n, false)
 	subscribeCount := subscriber.subscribeN(n) // only read n of 5 * n
 
