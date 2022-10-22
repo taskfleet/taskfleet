@@ -1,5 +1,5 @@
 version: v1
-name: buf.build/borchero/test
+name: buf.build/taskfleet/taskfleet
 lint:
   use:
     - DEFAULT
