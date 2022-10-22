@@ -1,0 +1,10 @@
+version: v1
+name: buf.build/borchero/test
+lint:
+  use:
+    - DEFAULT
+  except:
+    - SERVICE_SUFFIX
+deps:
+  - buf.build/envoyproxy/protoc-gen-validate
+  - buf.build/googleapis/googleapis

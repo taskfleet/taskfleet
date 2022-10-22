@@ -1,0 +1,79 @@
+name: gRPC Schema
+on:
+  pull_request:
+    paths:
+      - grpc/**
+      - .github/workflows/grpc.yaml
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Lint schema
+        uses: bufbuild/buf-lint-action@v1
+        with:
+          input: grpc/schema
+
+  check-breaking:
+    name: Breaking Change Detection
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Detect changes
+        uses: bufbuild/buf-breaking-action@v1
+        with:
+          input: grpc/schema
+          against:
+            ${{ github.server_url }}/${{ github.repository }}.git#branch=${{ github.base_ref
+            }},ref=HEAD~1,subdir=grpc/schema
+
+  check-generated:
+    name: Code Generation Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Install binaries
+        run: make install-proto-tools
+      - name: Generate output
+        run: buf generate
+        working-directory: grpc/schema
+      - name: Get changed files
+        id: changes
+        uses: tj-actions/verify-changed-files@v11.1
+      - name: Fail
+        if: steps.changes.outputs.changed_files == 'true'
+        run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"
+
+  publish:
+    name: Publish Module
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Push schema
+        uses: bufbuild/buf-push-action@v1
+        with:
+          buf_token: ${{ secrets.BUF_API_TOKEN }}
+          input: grpc/schema
