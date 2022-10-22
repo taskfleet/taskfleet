@@ -37,7 +37,7 @@ jobs:
           input: grpc/schema
           against:
             ${{ github.server_url }}/${{ github.repository }}.git#branch=${{ github.base_ref
-            }},ref=HEAD~1,subdir=grpc/schema
+            }},subdir=grpc/schema
 
   check-generated:
     name: Code Generation Check
