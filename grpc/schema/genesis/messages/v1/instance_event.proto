@@ -1,0 +1,66 @@
+syntax = "proto3";
+package genesis.messages.v1;
+
+option go_package = "go.taskfleet.io/grpc/gen/go/genesis/messages/v1;genesis_messages";
+
+import "google/protobuf/timestamp.proto";
+import "genesis/v1/types.proto";
+
+// InstanceEvent encapsulates the data to describe a lifetime event of a cloud instance.
+// * Key: Globally unique instance ID
+message InstanceEvent {
+    // The instance that the event refers to.
+    genesis.v1.Instance instance = 1;
+    // The timestamp of the event.
+    google.protobuf.Timestamp timestamp = 2;
+    oneof event {
+        // The event indicates that an instance was created.
+        InstanceCreatedEvent created = 3;
+        // The event indicates that an instance failed to be created.
+        InstanceCreationFailedEvent creation_failed = 4;
+        // The event indicates that a running instance was deleted.
+        InstanceDeletedEvent deleted = 5;
+    }
+}
+
+// InstanceCreatedEvent wraps information about an instance when the instance was created.
+message InstanceCreatedEvent {
+    // The configuration of the created instance.
+    genesis.v1.InstanceConfig config = 1;
+    // The available resources of the created instance.
+    genesis.v1.InstanceResources resources = 2;
+    // The hostname of the created instance.
+    string hostname = 3;
+}
+
+// InstanceCreationFailedEvent wraps information about an instance that failed to start up.
+message InstanceCreationFailedEvent {
+    enum Reason {
+        REASON_UNSPECIFIED = 0;
+        // The instance was never started up as insufficient resources were available.
+        REASON_INSUFFICIENT_RESOURCES = 1;
+        // The instance was never started up as insufficient quotas were available.
+        REASON_QUOTA_EXCEEDED = 2;
+    }
+
+    // The reason why instance creation failed.
+    Reason reason = 1;
+    // A message that provides more details on the failure.
+    string message = 2;
+}
+
+// InstanceDeletedEvent wraps information about an instance when the instance was deleted.
+message InstanceDeletedEvent {
+    enum Reason {
+        REASON_UNSPECIFIED = 0;
+        // The instance was shut down gracefully as a consequence of a user's request.
+        REASON_SHUTDOWN = 1;
+        // The instance was terminated forcefully as it was deemed unhealthy.
+        REASON_UNHEALTHY = 2;
+        // The instance was terminated by the cloud provider.
+        REASON_TERMINATED = 3;
+    }
+
+    // The reason why the instance was deleted.
+    Reason reason = 1;
+}
