@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - packages/mercury/**
-      - .github/workflows/pkg-mercury.yaml
+      - .github/workflows/pkg-mercury.yml
   push:
     branches:
       - main

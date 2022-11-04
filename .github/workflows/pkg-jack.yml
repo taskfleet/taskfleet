@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - packages/jack/**
-      - .github/workflows/pkg-jack.yaml
+      - .github/workflows/pkg-jack.yml
   push:
     branches:
       - main

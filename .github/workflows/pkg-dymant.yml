@@ -4,7 +4,7 @@ on:
     paths:
       - packages/dymant/**
       - packages/eagle/**
-      - .github/workflows/pkg-dymant.yaml
+      - .github/workflows/pkg-dymant.yml
   push:
     branches:
       - main

@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - packages/eagle/**
-      - .github/workflows/pkg-eagle.yaml
+      - .github/workflows/pkg-eagle.yml
   push:
     branches:
       - main
