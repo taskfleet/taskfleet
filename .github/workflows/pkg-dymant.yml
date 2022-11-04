@@ -5,9 +5,14 @@ on:
       - packages/dymant/**
       - packages/eagle/**
       - .github/workflows/pkg-dymant.yaml
+      - go.sum
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:

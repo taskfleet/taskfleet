@@ -14,3 +14,10 @@ updates:
     schedule:
       interval: weekly
       day: saturday
+  # Update Dockerfiles
+  - directory: /
+    open-pull-requests-limit: 5
+    package-ecosystem: docker
+    schedule:
+      interval: weekly
+      day: saturday

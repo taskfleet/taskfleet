@@ -1,0 +1,7 @@
+name: Service Genesis
+on:
+  pull_request:
+    paths:
+  push:
+    branches:
+      - main
