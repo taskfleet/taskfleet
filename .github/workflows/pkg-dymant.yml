@@ -9,6 +9,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Linting
@@ -56,7 +60,12 @@ jobs:
           until docker logs "${{ job.services.kafka.id }}" 2>&1 | \
             grep -q "Kafka Server started (kafka.server.KafkaRaftServer)"; do sleep 10; done
       - name: Run tests
-        run: go test ./packages/dymant/... -race -coverprofile=coverage.out -covermode=atomic
+        run: |
+          go test ./packages/dymant/... \
+            -race \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            -coverpkg=./packages/dymant/...
         env:
           KAFKA_BOOTSTRAP_SERVER: localhost:9092
       - name: Upload to codecov

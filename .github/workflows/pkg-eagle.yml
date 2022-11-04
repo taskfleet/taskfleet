@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Linting
@@ -36,7 +40,12 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Run Tests
-        run: go test ./packages/eagle/... -race -coverprofile=coverage.out -covermode=atomic
+        run: |
+          go test ./packages/eagle/... \
+            -race \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            -coverpkg=./packages/eagle/...
       - name: Upload to codecov
         uses: codecov/codecov-action@v3
         with:

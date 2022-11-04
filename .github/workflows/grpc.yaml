@@ -4,6 +4,7 @@ on:
     paths:
       - grpc/**
       - .github/workflows/grpc.yaml
+      - dev/tools.go
   push:
     branches:
       - main
