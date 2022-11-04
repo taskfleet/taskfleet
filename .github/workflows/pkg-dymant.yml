@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   lint:
-    uses: ./.github/reuse/go-lint.yml
+    uses: ./.github/workflows/go-lint.yml
     with:
       path: packages/dymant
 
