@@ -38,7 +38,7 @@ func newSubscriber(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kafka consumer: %s", err)
 	}
-	if err := kafkaConsumer.Subscribe(topic, nil); err != nil {
+	if err := kafkaConsumer.Subscribe(topic, consumerCallback(logger)); err != nil {
 		return nil, fmt.Errorf("failed to initiate subscription for topic: %s", err)
 	}
 
@@ -206,24 +206,6 @@ func (c *subscriber) poll(timeoutMs int) (proto.Message, error) {
 			return nil, fmt.Errorf("failed to unmarshal message: %s", err)
 		}
 		return msg, nil
-	case kafka.RevokedPartitions:
-		// On partition revocation, we need to remove the partitions from the consumer and tell
-		// the caller that a new assignment is imminent.
-		if c.logger.Core().Enabled(zap.DebugLevel) {
-			c.logger.Debug("received partition revocation", logFieldPartitions(item.Partitions))
-		}
-		if err := c.consumer.Unassign(); err != nil {
-			c.logger.Warn("failed to revoke partition", zap.Error(err))
-		}
-		return nil, errPartitionsRevoked
-	case kafka.AssignedPartitions:
-		// On partition assignment, we simply assign the consumer to the new partitions.
-		if c.logger.Core().Enabled(zap.DebugLevel) {
-			c.logger.Info("received partition assignment", logFieldPartitions(item.Partitions))
-		}
-		if err := c.consumer.Assign(item.Partitions); err != nil {
-			c.logger.Warn("failed to assign partition", zap.Error(err))
-		}
 	case kafka.Error:
 		// Errors are informational, so we only log them except if all brokers are down
 		if item.Code() == kafka.ErrAllBrokersDown {
@@ -257,6 +239,34 @@ func (c *subscriber) commit() error {
 
 func (c *subscriber) clearBuf() {
 	c.buf = c.buf[:0]
+}
+
+func consumerCallback(logger *zap.Logger) func(*kafka.Consumer, kafka.Event) error {
+	return func(c *kafka.Consumer, event kafka.Event) error {
+		switch item := event.(type) {
+		case kafka.RevokedPartitions:
+			// On partition revocation, we need to remove the partitions from the consumer and tell
+			// the caller that a new assignment is imminent.
+			if logger.Core().Enabled(zap.DebugLevel) {
+				logger.Debug("received partition revocation", logFieldPartitions(item.Partitions))
+			}
+			if err := c.Unassign(); err != nil {
+				logger.Warn("failed to revoke partitions", zap.Error(err))
+			}
+			return errPartitionsRevoked
+		case kafka.AssignedPartitions:
+			// On partition assignment, we simply assign the consumer to the new partitions.
+			if logger.Core().Enabled(zap.DebugLevel) {
+				logger.Debug("received partition assignment", logFieldPartitions(item.Partitions))
+			}
+			if err := c.Assign(item.Partitions); err != nil {
+				logger.Warn("failed to assign partitions", zap.Error(err))
+			}
+		default:
+			logger.Debug("received unexpected event", zap.String("event", item.String()))
+		}
+		return nil
+	}
 }
 
 //-------------------------------------------------------------------------------------------------

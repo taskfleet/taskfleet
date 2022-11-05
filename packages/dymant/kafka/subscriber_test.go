@@ -10,7 +10,6 @@ import (
 
 func TestMultipleSubscribers(t *testing.T) {
 	fixture := newPubsubFixture(t)
-	defer fixture.teardown()
 
 	// Round 1: only one subscriber
 	publisher := fixture.publisher()
@@ -19,7 +18,7 @@ func TestMultipleSubscribers(t *testing.T) {
 
 	n := 500 // Need to publish many messages to ensure that subscribers use consumer group
 	publisher.publishN(5*n, false)
-	subscribeCount := subscriber.subscribeN(n) // only read n of 5 * n
+	subscribeCount := subscriber.subscribeN(n, 0) // only read n of 5 * n
 
 	fixture.await()
 	assert.Equal(t, n, <-subscribeCount)
@@ -28,8 +27,8 @@ func TestMultipleSubscribers(t *testing.T) {
 	subscriber1 := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
 	subscriber2 := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
 
-	subscribe1Count := subscriber1.subscribeN(2 * n)
-	subscribe2Count := subscriber2.subscribeN(2 * n)
+	subscribe1Count := subscriber1.subscribeN(2*n, 500*time.Millisecond)
+	subscribe2Count := subscriber2.subscribeN(2*n, 500*time.Millisecond)
 
 	s1 := <-subscribe1Count
 	s2 := <-subscribe2Count

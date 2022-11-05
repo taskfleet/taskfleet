@@ -4,30 +4,23 @@ import (
 	"os"
 
 	"github.com/google/uuid"
+	"go.taskfleet.io/packages/jack"
 	"go.uber.org/zap"
 )
 
 var logger = func() *zap.Logger {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	return logger
+	config := zap.NewDevelopmentConfig()
+	config.Level.SetLevel(zap.InfoLevel)
+	// logger := jack.Must(zap.NewDevelopment())
+	return jack.Must(config.Build())
 }()
 
 var client = func() *Client {
 	clientID := uuid.NewString()
-	client, err := NewClient(clientID, []string{os.Getenv("KAFKA_BOOTSTRAP_SERVER")}, logger)
-	if err != nil {
-		panic(err)
-	}
+	client := jack.Must(NewClient(clientID, []string{os.Getenv("KAFKA_BOOTSTRAP_SERVER")}, logger))
 	return client
 }()
 
 var adminClient = func() *AdminClient {
-	admin, err := client.Admin()
-	if err != nil {
-		panic(err)
-	}
-	return admin
+	return jack.Must(client.Admin())
 }()

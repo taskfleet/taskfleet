@@ -9,7 +9,6 @@ import (
 
 func TestPublishSubscribeSync(t *testing.T) {
 	fixture := newPubsubFixture(t)
-	defer fixture.teardown()
 
 	publisher := fixture.publisher()
 	group := uuid.NewString()
@@ -17,7 +16,7 @@ func TestPublishSubscribeSync(t *testing.T) {
 
 	n := 5
 	publishCount := publisher.publishN(n, true)
-	subscribeCount := subscriber.subscribeN(n)
+	subscribeCount := subscriber.subscribeN(n, 0)
 
 	fixture.await()
 	assert.Equal(t, <-publishCount, <-subscribeCount)
@@ -25,7 +24,6 @@ func TestPublishSubscribeSync(t *testing.T) {
 
 func TestPublishSubscribeAsync(t *testing.T) {
 	fixture := newPubsubFixture(t)
-	defer fixture.teardown()
 
 	publisher := fixture.publisher()
 	group := uuid.NewString()
@@ -33,7 +31,7 @@ func TestPublishSubscribeAsync(t *testing.T) {
 
 	n := 50
 	publishCount := publisher.publishN(n, false)
-	subscribeCount := subscriber.subscribeN(n)
+	subscribeCount := subscriber.subscribeN(n, 0)
 
 	fixture.await()
 	assert.Equal(t, <-publishCount, <-subscribeCount)
