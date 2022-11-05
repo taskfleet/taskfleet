@@ -15,9 +15,15 @@ concurrency:
 
 jobs:
   lint:
-    uses: ./.github/workflows/go-lint.yml
-    with:
-      path: packages/dymant
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run linting
+        uses: ./.github/actions/go-lint
+        with:
+          path: packages/dymant
 
   test:
     name: Tests
@@ -40,25 +46,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
       - name: Wait for Kafka
         run: |
           until docker logs "${{ job.services.kafka.id }}" 2>&1 | \
             grep -q "Kafka Server started (kafka.server.KafkaRaftServer)"; do sleep 10; done
       - name: Run tests
-        run: |
-          go test ./packages/dymant/... \
-            -race \
-            -coverprofile=coverage.out \
-            -covermode=atomic \
-            -coverpkg=./packages/dymant/...
-        env:
-          KAFKA_BOOTSTRAP_SERVER: localhost:9092
-      - name: Upload to codecov
-        uses: codecov/codecov-action@v3
+        uses: ./.github/actions/go-test
         with:
-          files: coverage.out
-          flags: dymant
+          flag: dymant
+          path: packages/dymant
