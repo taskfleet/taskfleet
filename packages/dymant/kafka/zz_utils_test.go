@@ -101,15 +101,13 @@ func (p *testPublisher) publishN(n int, sync bool) <-chan int {
 	return ch
 }
 
-func (s *testSubscriber) subscribeN(n int, wait time.Duration) <-chan int {
+func (s *testSubscriber) subscribeN(n int, timeout time.Duration) <-chan int {
 	ch := make(chan int, 1)
 	go func() {
 		defer s.wg.Done()
 
-		ctx, cancel := context.WithTimeout(s.ctx, 20*time.Second)
+		ctx, cancel := context.WithTimeout(s.ctx, timeout)
 		defer cancel()
-
-		time.Sleep(wait)
 
 		count := 0
 		err := s.subscriber.Process(ctx, func(ctx context.Context, messages []proto.Message) error {

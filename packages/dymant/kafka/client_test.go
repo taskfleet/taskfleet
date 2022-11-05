@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ func TestPublishSubscribeSync(t *testing.T) {
 
 	n := 5
 	publishCount := publisher.publishN(n, true)
-	subscribeCount := subscriber.subscribeN(n, 0)
+	subscribeCount := subscriber.subscribeN(n, 3*time.Second)
 
 	fixture.await()
 	assert.Equal(t, <-publishCount, <-subscribeCount)
@@ -31,7 +32,7 @@ func TestPublishSubscribeAsync(t *testing.T) {
 
 	n := 50
 	publishCount := publisher.publishN(n, false)
-	subscribeCount := subscriber.subscribeN(n, 0)
+	subscribeCount := subscriber.subscribeN(n, 3*time.Second)
 
 	fixture.await()
 	assert.Equal(t, <-publishCount, <-subscribeCount)

@@ -6,35 +6,51 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMultipleSubscribers(t *testing.T) {
 	fixture := newPubsubFixture(t)
 
-	// Round 1: only one subscriber
-	publisher := fixture.publisher()
 	group := uuid.NewString()
-	subscriber := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
+	sub1 := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
+	sub2 := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
 
-	n := 500 // Need to publish many messages to ensure that subscribers use consumer group
-	publisher.publishN(5*n, false)
-	subscribeCount := subscriber.subscribeN(n, 0) // only read n of 5 * n
+	// Poll subscribers to ensure that both joined the consumer group
+	for {
+		ev := sub1.subscriber.(*subscriber).consumer.Poll(100)
+		require.Nil(t, ev) // no event should be delivered here
 
-	fixture.await()
-	assert.Equal(t, n, <-subscribeCount)
+		ev = sub2.subscriber.(*subscriber).consumer.Poll(100)
+		require.Nil(t, ev) // no event should be delivered here
 
-	// Round 2: two subscribers
-	subscriber1 := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
-	subscriber2 := fixture.subscriber(group, WithBatchConfig(100, 100*time.Millisecond))
+		assign1, err := sub1.subscriber.(*subscriber).consumer.Assignment()
+		require.Nil(t, err)
 
-	subscribe1Count := subscriber1.subscribeN(2*n, 500*time.Millisecond)
-	subscribe2Count := subscriber2.subscribeN(2*n, 500*time.Millisecond)
+		assign2, err := sub2.subscriber.(*subscriber).consumer.Assignment()
+		require.Nil(t, err)
 
+		if len(assign1) > 0 && len(assign2) > 0 {
+			break
+		}
+	}
+
+	// Publish messages only now
+	publisher := fixture.publisher()
+	n := 5
+	publisher.publishN(2*n, false)
+
+	// Read the messages (don't know how many arrive at each subscriber) -- they must arrive
+	// immediately
+	subscribe1Count := sub1.subscribeN(-1, time.Second)
+	subscribe2Count := sub2.subscribeN(-1, time.Second)
+
+	// Check if everything went as expectd
 	s1 := <-subscribe1Count
 	s2 := <-subscribe2Count
 
 	fixture.await()
-	assert.Equal(t, 4*n, s1+s2)
+	assert.Equal(t, 2*n, s1+s2)
 	assert.Greater(t, s1, 0)
 	assert.Greater(t, s2, 0)
 }
