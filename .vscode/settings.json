@@ -3,8 +3,6 @@
     "KAFKA_BOOTSTRAP_SERVER": "localhost:9092"
   },
   "protoc": {
-    "options": [
-      "--proto_path=${workspaceRoot}/grpc/schema"
-    ]
-  },
+    "options": ["--proto_path=${workspaceRoot}/grpc/schema"]
+  }
 }
