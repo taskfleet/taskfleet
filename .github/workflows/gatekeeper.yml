@@ -1,0 +1,19 @@
+name: Gatekeeper
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  actions: read
+
+jobs:
+  gatekeeper:
+    name: Gatekeeper
+    steps:
+      - name: Run gatekeeper
+        uses: upsidr@merge-gatekeeper@v1
+        with:
+          token: ${{ github.token }}
+          self: Gatekeeper
+          timeout: 3600
