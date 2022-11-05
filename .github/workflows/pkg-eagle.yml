@@ -3,42 +3,37 @@ on:
   pull_request:
     paths:
       - packages/eagle/**
-      - .github/workflows/pkg-eagle.yaml
+      - .github/workflows/pkg-eagle.yml
   push:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+
 jobs:
   lint:
-    name: Linting
+    name: Lint Eagle
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Run linting
+        uses: ./.github/actions/go-lint
         with:
-          go-version-file: go.mod
-      - name: Lint Code
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.50
-          working-directory: packages/eagle
+          path: packages/eagle
 
   test:
-    name: Tests
+    name: Test Eagle
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Run tests
+        uses: ./.github/actions/go-test
         with:
-          go-version-file: go.mod
-      - name: Run Tests
-        run: go test ./packages/eagle/... -race -coverprofile=coverage.out -covermode=atomic
-      - name: Upload to codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage.out
-          flags: eagle
+          flag: eagle
+          path: packages/eagle

@@ -1,0 +1,31 @@
+name: Go Testing
+description: Test Go code and upload coverage to codecov.
+
+inputs:
+  flag:
+    description: The flag to use for codecov.
+    required: true
+  path:
+    description: The path to the package to test.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: go.mod
+    - name: Run tests
+      shell: bash
+      run: |
+        go test ./${{ inputs.path }}/... \
+          -race \
+          -coverprofile=coverage.out \
+          -covermode=atomic \
+          -coverpkg=./${{ inputs.path }}/...
+    - name: Upload to codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: coverage.out
+        flags: ${{ inputs.flag }}
