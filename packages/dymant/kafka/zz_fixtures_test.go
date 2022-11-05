@@ -9,10 +9,8 @@ import (
 )
 
 var logger = func() *zap.Logger {
-	config := zap.NewDevelopmentConfig()
-	config.Level.SetLevel(zap.InfoLevel)
-	// logger := jack.Must(zap.NewDevelopment())
-	return jack.Must(config.Build())
+	logger := jack.Must(zap.NewDevelopment())
+	return logger
 }()
 
 var client = func() *Client {
@@ -22,5 +20,6 @@ var client = func() *Client {
 }()
 
 var adminClient = func() *AdminClient {
-	return jack.Must(client.Admin())
+	admin := jack.Must(client.Admin())
+	return admin
 }()
