@@ -7,10 +7,22 @@ coverage:
   status:
     project:
       default:
+        branches:
+          - "!main"
         target: auto
+      main:
+        branches:
+          - main
+        if_ci_failed: success
     patch:
       default:
+        branches:
+          - "!main"
         target: auto
+      main:
+        branches:
+          - main
+        if_ci_failed: success
 comment:
   layout: header,reach,diff,flags,files,footer
   require_changes: false

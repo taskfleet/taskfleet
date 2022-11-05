@@ -1,0 +1,20 @@
+name: Go Linting
+description: Lint Go code with golangci-lint.
+
+inputs:
+  path:
+    description: The path to the package to lint.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: go.mod
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: v1.50
+        working-directory: ${{ inputs.path }}

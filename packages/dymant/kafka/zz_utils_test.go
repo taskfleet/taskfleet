@@ -14,11 +14,10 @@ import (
 )
 
 type pubsubFixture struct {
-	ctx       context.Context
-	t         *testing.T
-	wg        *sync.WaitGroup
-	topic     *EphemeralTopic
-	ctxCancel func()
+	ctx   context.Context
+	t     *testing.T
+	wg    *sync.WaitGroup
+	topic *EphemeralTopic
 }
 
 type testPublisher struct {
@@ -38,16 +37,21 @@ type testSubscriber struct {
 func newPubsubFixture(t *testing.T) *pubsubFixture {
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	t.Cleanup(func() {
+		cancel()
+	})
 
 	topic, err := adminClient.EphemeralTopic(ctx)
 	require.Nil(t, err)
+	t.Cleanup(func() {
+		topic.Delete(ctx) // nolint:errcheck
+	})
 
 	return &pubsubFixture{
-		ctx:       ctx,
-		t:         t,
-		wg:        &sync.WaitGroup{},
-		topic:     topic,
-		ctxCancel: cancel,
+		ctx:   ctx,
+		t:     t,
+		wg:    &sync.WaitGroup{},
+		topic: topic,
 	}
 }
 
@@ -67,11 +71,6 @@ func (f *pubsubFixture) subscriber(group string, options ...SubscriberOption) *t
 
 func (f *pubsubFixture) await() {
 	f.wg.Wait()
-}
-
-func (f *pubsubFixture) teardown() {
-	f.ctxCancel()
-	f.topic.Delete(f.ctx) // nolint:errcheck
 }
 
 func (p *testPublisher) publishN(n int, sync bool) <-chan int {
@@ -102,12 +101,12 @@ func (p *testPublisher) publishN(n int, sync bool) <-chan int {
 	return ch
 }
 
-func (s *testSubscriber) subscribeN(n int) <-chan int {
+func (s *testSubscriber) subscribeN(n int, timeout time.Duration) <-chan int {
 	ch := make(chan int, 1)
 	go func() {
 		defer s.wg.Done()
 
-		ctx, cancel := context.WithTimeout(s.ctx, 20*time.Second)
+		ctx, cancel := context.WithTimeout(s.ctx, timeout)
 		defer cancel()
 
 		count := 0

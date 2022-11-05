@@ -1,5 +1,4 @@
-version: '3.9'
-
+version: "3.9"
 services:
   kafka:
     image: bitnami/kafka:3.3.1

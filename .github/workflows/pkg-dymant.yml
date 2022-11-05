@@ -4,8 +4,7 @@ on:
     paths:
       - packages/dymant/**
       - packages/eagle/**
-      - .github/workflows/pkg-dymant.yaml
-      - go.sum
+      - .github/workflows/pkg-dymant.yml
   push:
     branches:
       - main
@@ -13,26 +12,23 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
   lint:
-    name: Linting
+    name: Lint Dymant
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Run linting
+        uses: ./.github/actions/go-lint
         with:
-          go-version-file: go.mod
-      - name: Lint Code
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.50
-          working-directory: packages/dymant
+          path: packages/dymant
 
   test:
-    name: Tests
+    name: Test Dymant
     runs-on: ubuntu-latest
     services:
       kafka:
@@ -52,20 +48,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version-file: go.mod
       - name: Wait for Kafka
         run: |
           until docker logs "${{ job.services.kafka.id }}" 2>&1 | \
             grep -q "Kafka Server started (kafka.server.KafkaRaftServer)"; do sleep 10; done
       - name: Run tests
-        run: go test ./packages/dymant/... -race -coverprofile=coverage.out -covermode=atomic
+        uses: ./.github/actions/go-test
+        with:
+          flag: dymant
+          path: packages/dymant
         env:
           KAFKA_BOOTSTRAP_SERVER: localhost:9092
-      - name: Upload to codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: coverage.out
-          flags: dymant

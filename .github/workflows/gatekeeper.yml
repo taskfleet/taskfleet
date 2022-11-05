@@ -1,0 +1,21 @@
+name: Gatekeeper
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  actions: read
+
+jobs:
+  await-pr-checks:
+    name: Await PR Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run gatekeeper
+        uses: upsidr/merge-gatekeeper@v1
+        with:
+          token: ${{ github.token }}
+          self: Await PR Checks
+          timeout: 3600
+          ignored: codecov/project,codecov/patch

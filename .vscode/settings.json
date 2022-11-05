@@ -9,18 +9,13 @@
   // "go.testTags": "integration",
   "go.testTimeout": "600s",
   "gopls": {
-    "build.buildFlags": [
-      "-tags",
-      "integration"
-    ]
+    "build.buildFlags": ["-tags", "integration"]
   },
   //-----------------------------------------------------------------------------------------------
   // PROTOC
   //-----------------------------------------------------------------------------------------------
   "protoc": {
-    "options": [
-      "--proto_path=${workspaceRoot}/grpc/schema"
-    ]
+    "options": ["--proto_path=${workspaceRoot}/grpc/schema"]
   },
   //-----------------------------------------------------------------------------------------------
   // PRETTIER
