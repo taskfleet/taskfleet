@@ -10,6 +10,7 @@ permissions:
 jobs:
   gatekeeper:
     name: Gatekeeper
+    runs-on: ubuntu-latest
     steps:
       - name: Run gatekeeper
         uses: upsidr/merge-gatekeeper@v1
