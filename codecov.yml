@@ -7,6 +7,8 @@ coverage:
   status:
     project:
       default:
+        branches:
+          - "!main"
         target: auto
       main:
         branches:
@@ -14,6 +16,8 @@ coverage:
         if_ci_failed: success
     patch:
       default:
+        branches:
+          - "!main"
         target: auto
       main:
         branches:
