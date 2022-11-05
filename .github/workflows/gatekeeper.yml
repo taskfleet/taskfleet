@@ -12,7 +12,7 @@ jobs:
     name: Gatekeeper
     steps:
       - name: Run gatekeeper
-        uses: upsidr@merge-gatekeeper@v1
+        uses: upsidr/merge-gatekeeper@v1
         with:
           token: ${{ github.token }}
           self: Gatekeeper
