@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Linting
+    name: Lint Dymant
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -26,7 +26,7 @@ jobs:
           path: packages/dymant
 
   test:
-    name: Tests
+    name: Test Dymant
     runs-on: ubuntu-latest
     services:
       kafka:

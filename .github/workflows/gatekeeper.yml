@@ -8,13 +8,13 @@ permissions:
   actions: read
 
 jobs:
-  gatekeeper:
-    name: Gatekeeper
+  await-pr-checks:
+    name: Await PR Checks
     runs-on: ubuntu-latest
     steps:
       - name: Run gatekeeper
         uses: upsidr/merge-gatekeeper@v1
         with:
           token: ${{ github.token }}
-          self: Gatekeeper
+          self: Await PR Checks
           timeout: 3600

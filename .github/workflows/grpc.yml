@@ -11,7 +11,7 @@ on:
 
 jobs:
   lint:
-    name: Linting
+    name: Lint gRPC
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,7 +24,7 @@ jobs:
           input: grpc/schema
 
   check-breaking:
-    name: Breaking Change Detection
+    name: Detect Breaking gRPC Changes
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
@@ -41,7 +41,7 @@ jobs:
             }},subdir=grpc/schema
 
   check-generated:
-    name: Code Generation Check
+    name: Check Generated gRPC Code
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -65,7 +65,7 @@ jobs:
         run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"
 
   publish:
-    name: Publish Module
+    name: Publish gRPC Module
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     steps:

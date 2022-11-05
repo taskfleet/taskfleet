@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Linting
+    name: Lint Jack
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,7 +25,7 @@ jobs:
           path: packages/jack
 
   test:
-    name: Tests
+    name: Test Jack
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
