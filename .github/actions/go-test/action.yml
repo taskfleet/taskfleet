@@ -28,4 +28,4 @@ runs:
       uses: codecov/codecov-action@v3
       with:
         files: coverage.out
-        flags: ${{ inptus.flag }}
+        flags: ${{ inputs.flag }}
