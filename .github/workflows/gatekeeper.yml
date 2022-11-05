@@ -18,3 +18,4 @@ jobs:
           token: ${{ github.token }}
           self: Await PR Checks
           timeout: 3600
+          ignored: codecov/project,codecov/patch
