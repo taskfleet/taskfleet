@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func GetOutput[T any](ctx context.Context, t *testing.T, tf *tfexec.Terraform, key string) T {
+func GetOutput[T any](ctx context.Context, t testing.TB, tf *tfexec.Terraform, key string) T {
 	// Get output
 	output, err := tf.Output(ctx)
 	require.Nil(t, err)

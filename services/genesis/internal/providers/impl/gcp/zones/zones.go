@@ -45,8 +45,8 @@ func fetchZonesAndSubnetworks(
 	result := map[string]string{}
 	it := zones.List(ctx, &computepb.ListZonesRequest{Project: project})
 	if err := gcputils.Iterate[*computepb.Zone](ctx, it, func(zone *computepb.Zone) error {
-		if subnet, ok := regions[path.Base(*zone.Region)]; ok {
-			result[*zone.Name] = subnet
+		if subnet, ok := regions[path.Base(zone.GetRegion())]; ok {
+			result[zone.GetName()] = subnet
 		}
 		return nil
 	}); err != nil {

@@ -78,11 +78,11 @@ func fetchAccelerators(
 
 			for _, item := range pair.Value.AcceleratorTypes {
 				// Ignore all virtual workstations
-				if strings.HasSuffix(*item.Name, "-vws") {
+				if strings.HasSuffix(item.GetName(), "-vws") {
 					continue
 				}
 
-				gpuKind, err := typedefs.GPUKindFromProviderGcp(*item.Name)
+				gpuKind, err := typedefs.GPUKindFromProviderGcp(item.GetName())
 				if err != nil {
 					// The GPU type could not be parsed, this might indicate an error
 					zeus.Logger(ctx).Warn(
@@ -93,9 +93,9 @@ func fetchAccelerators(
 
 				// Otherwise we add the GPU to the permitted accelerators
 				result[zone] = append(result[zone], Accelerator{
-					uri:                 *item.SelfLink,
+					uri:                 item.GetSelfLink(),
 					kind:                gpuKind,
-					maxCountPerInstance: uint16(*item.MaximumCardsPerInstance),
+					maxCountPerInstance: uint16(item.GetMaximumCardsPerInstance()),
 				})
 			}
 			return nil

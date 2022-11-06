@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"path"
 
+	compute "cloud.google.com/go/compute/apiv1"
 	gcputils "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/utils"
 	gcpzones "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/zones"
 	"go.taskfleet.io/services/genesis/internal/providers/instances"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
-	"google.golang.org/api/compute/v1"
 )
 
 // Client represents a GCP instance client.
@@ -18,16 +18,16 @@ type Client struct {
 	projectID  string
 	identifier string
 	network    string
+	service    *compute.InstancesClient
 	zones      *gcpzones.Client
 	instances  map[string]*instances.Manager
-	requester  *gcputils.OperationRequester
 }
 
 // NewClient initializes a new instance client which first fetch all available instance types.
 func NewClient(
 	ctx context.Context,
 	identifier, network, projectID string,
-	service *compute.Service,
+	service *compute.InstancesClient,
 	zones *gcpzones.Client,
 ) (*Client, error) {
 	// First, we initialize the instance manager
@@ -47,10 +47,6 @@ func NewClient(
 		network:    network,
 		zones:      zones,
 		instances:  instanceManagers,
-		requester: &gcputils.OperationRequester{
-			Service: service,
-			Project: projectID,
-		},
 	}, nil
 }
 
