@@ -69,18 +69,3 @@ jobs:
       - name: Fail
         if: steps.changes.outputs.changed_files == 'true'
         run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"
-
-  publish:
-    name: Publish gRPC Module
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Push schema
-        uses: bufbuild/buf-push-action@v1
-        with:
-          buf_token: ${{ secrets.BUF_API_TOKEN }}
-          input: grpc/schema

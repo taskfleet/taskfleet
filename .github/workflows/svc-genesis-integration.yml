@@ -4,26 +4,41 @@ on:
     types:
       - labeled
     paths:
+      - packages/genesis/**
+      - packages/dymant/**
+      - packages/eagle/**
+      - packages/jack/**
+      - packages/mercury/**
+      - packages/postgres/**
       - .github/workflows/svc-genesis-integration.yml
-      - services/genesis/**
-      - packages/**
   push:
     branches:
       - main
 
+# Cannot cancel in-progress since external resources must be torn down by the test
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  lint:
-    name: Linting
+  test:
+    name: Integration Test Genesis
+    if: github.event.label.name == 'integration-test'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Authenticate with GCP
+        id: gcp-auth
+        uses: google-github-actions/auth@v0
         with:
-          go-version-file: go.mod
-      - name: Lint Code
-        uses: golangci/golangci-lint-action@v3
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - name: Run tests
+        uses: ./.github/actions/go-test
         with:
-          version: v1.50
-          working-directory: packages/mercury
+          path: services/genesis/internal
+          tags: integration
+          # Do not upload to codecov here: unit tests determine code coverage
+        env:
+          GCP_PROJECT: ${{ steps.gcp-auth.outputs.project_id }}

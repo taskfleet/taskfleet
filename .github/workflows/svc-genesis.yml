@@ -2,6 +2,43 @@ name: Service Genesis
 on:
   pull_request:
     paths:
+      - packages/genesis/**
+      - packages/dymant/**
+      - packages/eagle/**
+      - packages/jack/**
+      - packages/mercury/**
+      - packages/postgres/**
+      - .github/workflows/svc-genesis.yml
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Genesis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run linting
+        uses: ./.github/actions/go-lint
+        with:
+          path: services/genesis
+
+  test:
+    name: Unit Test Genesis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run tests
+        uses: ./.github/actions/go-test
+        with:
+          flag: genesis
+          path: services/genesis/internal
