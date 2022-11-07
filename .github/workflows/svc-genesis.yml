@@ -2,7 +2,7 @@ name: Service Genesis
 on:
   pull_request:
     paths:
-      - packages/genesis/**
+      - services/genesis/**
       - packages/dymant/**
       - packages/eagle/**
       - packages/jack/**
