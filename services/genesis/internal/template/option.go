@@ -16,6 +16,7 @@ type Option[T any] struct {
 // OptionSelector defines desired values of instance properties.
 type OptionSelector struct {
 	// A set of GPUs that the instance template matches. If not provided, matches all GPU kinds and
+	// no GPUs.
 	GPUs *Selector[*typedefs.GPUKind] `json:"gpus,omitempty"`
 	// A set of CPU architectures that the instance template matches. If not provided, matches all
 	// CPU architectures.

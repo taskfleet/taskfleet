@@ -1,6 +1,8 @@
 package gcpinstances
 
 const (
+	// LabelID captures the internal ID of the instance.
+	LabelID string = "id"
 	// LabelKeyCreatedBy identifies the component that created an instance.
 	LabelKeyCreatedBy string = "created-by"
 	// LabelKeyOwnedBy describes the label key used for identifying the owner of an instance.

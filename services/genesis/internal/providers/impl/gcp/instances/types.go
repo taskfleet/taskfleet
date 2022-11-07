@@ -15,6 +15,7 @@ import (
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 	"go.uber.org/zap"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func findAvailableInstanceTypes(
@@ -29,12 +30,12 @@ func findAvailableInstanceTypes(
 		result[zone.Name] = make([]instances.Type, 0)
 	}
 
-	// First, we fetch the aggregated list of all machine types
-	it := service.AggregatedList(ctx, &computepb.AggregatedListMachineTypesRequest{
-		Project: projectID,
-	})
-	if err := gcputils.Iterate[compute.MachineTypesScopedListPair](
-		ctx, it, func(pair compute.MachineTypesScopedListPair) error {
+	// First, we fetch the aggregated list of all machine types. We need to send two requests here
+	// since the response data does not provide the CPU architecture.
+	processResponse := func(
+		architecture typedefs.CPUArchitecture,
+	) func(pair compute.MachineTypesScopedListPair) error {
+		return func(pair compute.MachineTypesScopedListPair) error {
 			zone := path.Base(pair.Key)
 
 			// If the zone is not available, continue
@@ -44,14 +45,34 @@ func findAvailableInstanceTypes(
 
 			// Then iterate over available machine types
 			for _, item := range pair.Value.MachineTypes {
-				if instance := tryUnmarshalInstanceType(ctx, item); instance != nil {
+				if instance := tryUnmarshalInstanceType(ctx, item, architecture); instance != nil {
 					result[zone] = append(result[zone], *instance)
 				}
 			}
 			return nil
-		},
+		}
+	}
+
+	// 1/2) x86_64
+	it := service.AggregatedList(ctx, &computepb.AggregatedListMachineTypesRequest{
+		Project: projectID,
+		Filter:  proto.String("architecture=\"x86_64\""),
+	})
+	if err := gcputils.Iterate[compute.MachineTypesScopedListPair](
+		ctx, it, processResponse(typedefs.ArchitectureX86),
 	); err != nil {
-		return nil, fmt.Errorf("failed to fetch all machine types: %s", err)
+		return nil, fmt.Errorf("failed to fetch machine types with x86 architecture: %s", err)
+	}
+
+	// 2/2) arm64
+	it = service.AggregatedList(ctx, &computepb.AggregatedListMachineTypesRequest{
+		Project: projectID,
+		Filter:  proto.String("architecture=\"arm64\""),
+	})
+	if err := gcputils.Iterate[compute.MachineTypesScopedListPair](
+		ctx, it, processResponse(typedefs.ArchitectureX86),
+	); err != nil {
+		return nil, fmt.Errorf("failed to fetch machine types with arm architecture: %s", err)
 	}
 
 	// Then, we add all instance types which provide GPUs. At the moment, GPUs (other than the
@@ -83,7 +104,11 @@ func findAvailableInstanceTypes(
 	return result, nil
 }
 
-func tryUnmarshalInstanceType(ctx context.Context, item *computepb.MachineType) *instances.Type {
+func tryUnmarshalInstanceType(
+	ctx context.Context,
+	item *computepb.MachineType,
+	architecture typedefs.CPUArchitecture,
+) *instances.Type {
 	// When iterating over the returned machines, we exclude some sets of machines:
 	// * Machines with shared cores since they provide too little resources for proper jobs
 	// * Deprecated machines (even if they are still active)
@@ -102,7 +127,7 @@ func tryUnmarshalInstanceType(ctx context.Context, item *computepb.MachineType) 
 	}
 	if len(item.Accelerators) > 0 {
 		accelerator := item.Accelerators[0]
-		gpuKind, err := typedefs.GPUKindFromProviderGcp(accelerator.GetGuestAcceleratorType())
+		gpuKind, err := typedefs.GPUKindUnmarshalProviderGcp(accelerator.GetGuestAcceleratorType())
 
 		// Skip this instance if it cannot be parsed
 		if err != nil {
@@ -119,15 +144,13 @@ func tryUnmarshalInstanceType(ctx context.Context, item *computepb.MachineType) 
 		}
 	}
 
-	// Get the CPU architecture. Currently, the API does not allow to discern the CPU architecture.
-	// Currently, only T2A instances provide ARM processors.
-	architecture := typedefs.ArchitectureX86
-	if strings.HasPrefix(item.GetName(), "t2a-") {
-		architecture = typedefs.ArchitectureArm
-	}
-
 	// Return the instance
-	return &instances.Type{Name: item.GetName(), Resources: resources, Architecture: architecture}
+	return &instances.Type{
+		Name:         item.GetName(),
+		UID:          item.GetSelfLink(),
+		Resources:    resources,
+		Architecture: architecture,
+	}
 }
 
 func explodeAvailableGpuInstanceTypes(
@@ -138,8 +161,12 @@ func explodeAvailableGpuInstanceTypes(
 		maxCPU, maxMem := maxCpuAndMemoryForGpu(gpu, count, zone)
 		for _, instance := range n1Instances {
 			if instance.CPUCount <= maxCPU && instance.MemoryMiB <= maxMem*1024 {
+				// We need to create our own name here to distinguish instance types. This is not
+				// ideal but makes the design of providers much easier...
+				resources := instances.GPUResources{Kind: gpu, Count: count}
 				result = append(result, instances.Type{
-					Name: instance.Name,
+					Name: extendedInstanceTypeName(instance.Name, &resources),
+					UID:  instance.UID,
 					Resources: instances.Resources{
 						CPUCount:  instance.CPUCount,
 						MemoryMiB: instance.MemoryMiB,
@@ -153,6 +180,14 @@ func explodeAvailableGpuInstanceTypes(
 		}
 	}
 	return result
+}
+
+func extendedInstanceTypeName(name string, gpu *instances.GPUResources) string {
+	if gpu == nil || !strings.HasPrefix(name, "n1-") {
+		return name
+	}
+	// Only augment name if n1- instance and GPU attached
+	return fmt.Sprintf("%s-%s-%d", name, gpu.Kind, gpu.Count)
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -7,6 +7,8 @@ type Type struct {
 	Resources
 	// The provider-specific name of the instance type.
 	Name string
+	// The provider-specific ID of the instance type (e.g. an ARN for AWS or a link for GCP).
+	UID string
 	// The CPU architecture of the instance type.
 	Architecture typedefs.CPUArchitecture
 }
@@ -32,6 +34,14 @@ type GPUResources struct {
 //-------------------------------------------------------------------------------------------------
 // METHODS
 //-------------------------------------------------------------------------------------------------
+
+// GPUKind returns the GPU kind when a GPU is referenced in the resources and `nil` otherwise.
+func (r Resources) GPUKind() *typedefs.GPUKind {
+	if r.GPU == nil {
+		return nil
+	}
+	return &r.GPU.Kind
+}
 
 func (t Type) artificialPrice() float64 {
 	// 1 GPU = 50 CPUs = 375 GiB memory

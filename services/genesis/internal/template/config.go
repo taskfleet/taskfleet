@@ -34,7 +34,7 @@ type InstanceReservations struct {
 // InstanceDisk models the configuration of additional disks mounted to instances.
 type InstanceDisk struct {
 	// A common name for the disk. The disk will be available at different locations for the
-	// different cloud providers:
+	// different cloud providers.
 	Name string `json:"name"`
 	// The size of the disk per CPU on the instance.
 	SizePerCPU string `json:"sizePerCpu"`
@@ -122,6 +122,8 @@ type GcpInstanceConfig struct {
 	Network GcpNetworkConfig `json:"network"`
 	// The IAM configuration of the instance.
 	Iam GcpIamConfig `json:"iam"`
+	// The configuration for disks attached to the instance.
+	Disks GcpDiskConfig `json:"disk"`
 }
 
 // GcpBootConfig defines the boot configuration of a GCP instance.
@@ -138,15 +140,25 @@ type GcpBootConfig struct {
 // GCP.
 type GcpNetworkConfig struct {
 	// The name of the GCP network into which instances should be launched. Instances can only be
-	// launched into regions where this network defines a subnet.
+	// launched into regions where this network defines exactly one subnet.
 	Name string `json:"name"`
 	// The network tags to apply to the instance. These tags implicitly define the firewall rules
 	// that are applied to the instance.
 	Tags []string `json:"tags"`
+	// Whether instances should be shielded from the public internet, i.e. should not receive an
+	// external IP address. Instances can still access the public internet if a cloud router is
+	// configured in their network and the region they are launched in.
+	Shielded bool `json:"shielded"`
 }
 
 // GcpIamConfig defines the IAM configuration of instances launched on GCP.
 type GcpIamConfig struct {
 	// The email of the service account to attach to instances.
 	ServiceAccountEmail string `json:"serviceAccountEmail"`
+}
+
+// GcpDiskConfig defines basic properties of disks attaches to instances launched on GCP.
+type GcpDiskConfig struct {
+	// The disk type to use for all disks. Defaults to pd-standard.
+	Type string `json:"type"`
 }

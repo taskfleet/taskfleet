@@ -104,7 +104,7 @@ func newAcceleratorTypesClient(
 				types = append(types, &computepb.AcceleratorType{
 					Name:     proto.String(name),
 					SelfLink: proto.String(fmt.Sprintf("https://example.com/%s", name)),
-
+					// Keeping this line empty for nicer formatting
 					MaximumCardsPerInstance: proto.Int32(4),
 				})
 			}

@@ -10,17 +10,25 @@ import (
 // Manager is a type which manages a set of instances for a single provider zone. Its primary
 // use case is to choose the instance that fits a particular request the best.
 type Manager struct {
-	instances []Type
+	instances map[string]Type
 }
 
-// NewManager initializes a new manager which manages the provided set of instances.
-func NewManager(instances []Type) *Manager {
-	return &Manager{instances: instances}
+// NewManager initializes a new manager which manages the provided set of instances. Each instance
+// type must have a unique name. An error is returned if this is not the case.
+func NewManager(instances []Type) (*Manager, error) {
+	mapping := map[string]Type{}
+	for _, instance := range instances {
+		if _, ok := mapping[instance.Name]; ok {
+			return nil, fmt.Errorf("duplicate instance type for name %s", instance.Name)
+		}
+		mapping[instance.Name] = instance
+	}
+	return &Manager{instances: mapping}, nil
 }
 
 // Types returns all instance types managed by this manager.
 func (m *Manager) Types() []Type {
-	return m.instances
+	return jack.MapValues(m.instances)
 }
 
 // Validate ensures that the provided resources do not exhibit a skew that is too large.
@@ -43,12 +51,10 @@ func (m *Manager) GPUKinds() []typedefs.GPUKind {
 // Get returns the instance type with the specified name. If it cannot be found, an error is
 // returned.
 func (m *Manager) Get(name string) (Type, error) {
-	for _, instance := range m.instances {
-		if instance.Name == name {
-			return instance, nil
-		}
+	if instance, ok := m.instances[name]; ok {
+		return instance, nil
 	}
-	return Type{}, fmt.Errorf("could not find suitable instance type")
+	return Type{}, fmt.Errorf("could not find instance type named %s", name)
 }
 
 // FindBestFit finds the instance which provides the best fit for the requested resources. If no

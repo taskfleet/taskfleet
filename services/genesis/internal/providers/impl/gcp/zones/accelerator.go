@@ -82,7 +82,7 @@ func fetchAccelerators(
 					continue
 				}
 
-				gpuKind, err := typedefs.GPUKindFromProviderGcp(item.GetName())
+				gpuKind, err := typedefs.GPUKindUnmarshalProviderGcp(item.GetName())
 				if err != nil {
 					// The GPU type could not be parsed, this might indicate an error
 					zeus.Logger(ctx).Warn(

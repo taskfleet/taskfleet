@@ -4,8 +4,29 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.taskfleet.io/packages/jack"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 )
+
+func TestNewManager(t *testing.T) {
+	// No issue during initialization
+	instances := []Type{
+		{Name: "test1"},
+		{Name: "test2"},
+	}
+	manager, err := NewManager(instances)
+	assert.Nil(t, err)
+	assert.ElementsMatch(t, []string{"test1", "test2"}, jack.MapKeys(manager.instances))
+
+	// Ensure that it fails when using instances with the same name, even if they are different
+	instances = []Type{
+		{Name: "test1", Architecture: typedefs.ArchitectureArm},
+		{Name: "test1", Architecture: typedefs.ArchitectureX86},
+	}
+	_, err = NewManager(instances)
+	assert.ErrorContains(t, err, "duplicate")
+}
 
 func TestFindBestFit(t *testing.T) {
 	instances := []Type{
@@ -25,10 +46,11 @@ func TestFindBestFit(t *testing.T) {
 			Architecture: typedefs.ArchitectureX86,
 		},
 	}
-	manager := NewManager(instances)
+	manager, err := NewManager(instances)
+	require.Nil(t, err)
 
 	// Too many CPUs
-	_, err := manager.FindBestFit(
+	_, err = manager.FindBestFit(
 		Resources{CPUCount: 10, MemoryMiB: 1024}, typedefs.ArchitectureX86,
 	)
 	assert.NotNil(t, err)

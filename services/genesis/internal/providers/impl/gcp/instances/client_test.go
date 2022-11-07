@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
+	compute "cloud.google.com/go/compute/apiv1"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gcpzones "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/zones"
 	"go.taskfleet.io/services/genesis/internal/providers/instances"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
-	"google.golang.org/api/compute/v1"
 )
 
 func TestCreateShutdown(t *testing.T) {

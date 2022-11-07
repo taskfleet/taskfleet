@@ -67,7 +67,7 @@ type InstanceStatus struct {
 type InstanceNetworkStatus struct {
 	// The internal IP of the instance.
 	InternalIP net.IP
-	// The external IP of the instance.
+	// The external IP of the instance (might not exist).
 	ExternalIP net.IP
 	// The internal hostname of the instance.
 	InternalHostname string

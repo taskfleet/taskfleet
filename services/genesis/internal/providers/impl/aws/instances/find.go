@@ -117,7 +117,7 @@ func instanceTypesFromAwsInstanceTypes(
 				continue
 			}
 			info := instance.GpuInfo.Gpus[0]
-			kind, err := typedefs.GPUKindFromProviderAws(info)
+			kind, err := typedefs.GPUKindUnmarshalProviderAws(info)
 			if err != nil {
 				zeus.Logger(ctx).Debug("skipping instance type", zap.Error(err))
 				continue

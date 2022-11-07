@@ -1,7 +1,6 @@
 package gcpinstances
 
 import (
-	"fmt"
 	"net"
 	"path"
 	"time"
@@ -9,20 +8,20 @@ import (
 	"go.taskfleet.io/services/genesis/internal/providers/instances"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
-	"google.golang.org/api/compute/v1"
+	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
 
 func unmarshalInstance(
-	instance *compute.Instance, managers map[string]*instances.Manager, project string,
+	instance *computepb.Instance, manager *instances.Manager, project string,
 ) (providers.Instance, error) {
 	// First, parse meta
-	ref, err := unmarshalInstanceRef(instance)
+	meta, err := unmarshalInstanceMeta(instance)
 	if err != nil {
 		return providers.Instance{}, err
 	}
 
 	// Then, parse the spec
-	spec, err := unmarshalInstanceSpec(instance, managers)
+	spec, err := unmarshalInstanceSpec(instance, manager)
 	if err != nil {
 		return providers.Instance{}, err
 	}
@@ -34,97 +33,86 @@ func unmarshalInstance(
 	}
 
 	result := providers.Instance{
-		Ref:    ref,
+		Meta:   meta,
 		Spec:   spec,
 		Status: status,
 	}
 	return result, nil
 }
 
-func unmarshalInstanceRef(i *compute.Instance) (providers.InstanceRef, error) {
-	return providers.InstanceRefFromCommonName(i.Name, path.Base(i.Zone))
+func unmarshalInstanceMeta(i *computepb.Instance) (providers.InstanceMeta, error) {
+	return providers.InstanceMetaFromCommonName(i.GetName(), path.Base(i.GetZone()))
 }
 
 func unmarshalInstanceSpec(
-	i *compute.Instance, managers map[string]*instances.Manager,
+	i *computepb.Instance, manager *instances.Manager,
 ) (providers.InstanceSpec, error) {
 	// Get compute instance type -- for this, we need the correct manager and need to parse the
-	// GPU resources
+	// GPU resources to translate them into the instance name
 	var gpuResources *instances.GPUResources
-	if len(i.GuestAccelerators) > 0 {
-		gpuKind, err := typedefs.GPUKindFromProviderGcp(
-			path.Base(i.GuestAccelerators[0].AcceleratorType),
+	if len(i.GetGuestAccelerators()) > 0 {
+		gpuKind, err := typedefs.GPUKindUnmarshalProviderGcp(
+			path.Base(i.GetGuestAccelerators()[0].GetAcceleratorType()),
 		)
 		if err != nil {
 			return providers.InstanceSpec{}, providers.NewFatalError("unknown kind of gpu", err)
 		}
 		gpuResources = &instances.GPUResources{
 			Kind:  gpuKind,
-			Count: uint16(i.GuestAccelerators[0].AcceleratorCount),
+			Count: uint16(i.GetGuestAccelerators()[0].GetAcceleratorCount()),
 		}
 	}
 
-	manager := managers[path.Base(i.Zone)]
-	machineType, err := manager.Get(path.Base(i.MachineType), gpuResources)
+	InstanceType, err := manager.Get(
+		extendedInstanceTypeName(path.Base(i.GetMachineType()), gpuResources),
+	)
 	if err != nil {
-		return providers.InstanceSpec{}, providers.NewFatalError("unknown machine type", err)
+		// Raising a fatal error here since any instance type should be known since it was created
+		// by Genesis
+		return providers.InstanceSpec{}, providers.NewFatalError("unknown instance type", err)
 	}
 
-	compute := providers.ComputeConfig{
-		InstanceType: machineType,
-		IsSpot:       i.Scheduling.Preemptible,
-	}
+	// Spot status is determined by the instance's provisioning type
+	isSpot := i.GetScheduling().GetProvisioningModel() == "SPOT"
 
-	// Get metadata
-	metadata := providers.MetadataConfig{
-		Tags:       i.Tags.Items,
-		Labels:     i.Labels,
-		Attributes: map[string]string{},
-	}
-	for _, item := range i.Metadata.Items {
-		metadata.Attributes[item.Key] = *item.Value
-	}
-
-	// Get security configuration
-	security := providers.SecurityConfig{}
-	if len(i.ServiceAccounts) > 0 {
-		security = providers.SecurityConfig{
-			ServiceAccountEmail: i.ServiceAccounts[0].Email,
-		}
-	}
-
-	// Aggregate into spec
-	spec := providers.InstanceSpec{
-		Compute:  compute,
-		Metadata: metadata,
-		Security: security,
-	}
-	return spec, nil
+	// Finalize the instance spec
+	return providers.InstanceSpec{
+		InstanceType: InstanceType,
+		IsSpot:       isSpot,
+	}, nil
 }
 
 func unmarshalInstanceStatus(
-	i *compute.Instance, project string,
+	i *computepb.Instance, project string,
 ) (providers.InstanceStatus, error) {
 	// Get creation timestamp
-	createdAt, err := time.Parse(time.RFC3339, i.CreationTimestamp)
+	createdAt, err := time.Parse(time.RFC3339, i.GetCreationTimestamp())
 	if err != nil {
 		return providers.InstanceStatus{},
 			providers.NewFatalError("instance returned invalid creation timestamp", err)
 	}
 
-	// Get network configuration
-	if len(i.NetworkInterfaces) == 0 {
+	// Get network interface to read network configuration
+	if len(i.GetNetworkInterfaces()) == 0 {
 		return providers.InstanceStatus{},
 			providers.NewFatalError("instance is not attached to any networks", nil)
-	}
-	internalIP := net.ParseIP(i.NetworkInterfaces[0].NetworkIP)
-
-	if len(i.NetworkInterfaces[0].AccessConfigs) == 0 {
+	} else if len(i.GetNetworkInterfaces()) > 1 {
 		return providers.InstanceStatus{},
-			providers.NewFatalError("instance does not have access to the internet", nil)
+			providers.NewFatalError("instance attached to multiple networks", nil)
 	}
-	externalIP := net.ParseIP(i.NetworkInterfaces[0].AccessConfigs[0].NatIP)
-	hostname := fmt.Sprintf("%s.%s.c.%s.internal", i.Name, path.Base(i.Zone), project)
+	iface := i.GetNetworkInterfaces()[0]
+
+	// Get internal IP
+	internalIP := net.ParseIP(iface.GetNetworkIP())
+	if internalIP == nil {
+		return providers.InstanceStatus{}, providers.NewFatalError("invalid network IP", nil)
+	}
+
+	// Get external IP
+	var externalIP net.IP
+	if len(iface.GetAccessConfigs()) > 0 {
+		externalIP = net.ParseIP(iface.GetAccessConfigs()[0].GetNatIP())
+	}
 
 	// Combine into status
 	status := providers.InstanceStatus{
@@ -132,7 +120,7 @@ func unmarshalInstanceStatus(
 		Network: providers.InstanceNetworkStatus{
 			InternalIP:       internalIP,
 			ExternalIP:       externalIP,
-			InternalHostname: hostname,
+			InternalHostname: i.GetHostname(),
 		},
 	}
 	return status, nil

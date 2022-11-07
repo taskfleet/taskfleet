@@ -119,14 +119,14 @@ func (k GPUKind) MarshalProto() genesis_v1.GPUKind {
 // ShortName returns the short name of the GPU type.
 func (k GPUKind) ShortName() string {
 	splits := strings.Split(string(k), "-")
-	return splits[len(splits)-1]
+	return strings.Join(splits[2:], "-")
 }
 
 //-------------------------------------------------------------------------------------------------
 
-// GPUKindFromProviderAws returns the GPU kind for the specified AWS GPU kind and an error if the
-// AWS GPU is unknown.
-func GPUKindFromProviderAws(info types.GpuDeviceInfo) (GPUKind, error) {
+// GPUKindUnmarshalProviderAws returns the GPU kind for the specified AWS GPU kind and an error if
+// the AWS GPU is unknown.
+func GPUKindUnmarshalProviderAws(info types.GpuDeviceInfo) (GPUKind, error) {
 	if info.Manufacturer == nil || info.Name == nil {
 		return GPUKind(""), fmt.Errorf("gpu info misses at least one of manufacturer or name")
 	}
@@ -156,9 +156,9 @@ func GPUKindFromProviderAws(info types.GpuDeviceInfo) (GPUKind, error) {
 	}
 }
 
-// GPUKindFromProviderGcp returns the GPU kind for the specified GCP GPU kind and an error if the
-// GCP GPU is not available.
-func GPUKindFromProviderGcp(kind string) (GPUKind, error) {
+// GPUKindUnmarshalProviderGcp returns the GPU kind for the specified GCP GPU kind and an error if
+// the GCP GPU is not available.
+func GPUKindUnmarshalProviderGcp(kind string) (GPUKind, error) {
 	switch kind {
 	case "nvidia-tesla-k80":
 		return GPUNvidiaTeslaK80, nil
