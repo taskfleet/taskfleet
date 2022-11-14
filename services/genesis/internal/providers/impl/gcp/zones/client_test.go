@@ -6,16 +6,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	gcputils "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/utils"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 )
 
 func TestZoneList(t *testing.T) {
-	c := Client{zones: map[string]ZoneInfo{
-		"zone-1": {Accelerators: []Accelerator{{kind: typedefs.GPUNvidiaTeslaV100}}},
+	c := &client{zones: map[string]ZoneInfo{
+		"zone-1": {Accelerators: []Accelerator{{Kind: typedefs.GPUNvidiaTeslaV100}}},
 		"zone-2": {Accelerators: []Accelerator{
-			{kind: typedefs.GPUNvidiaTeslaV100},
-			{kind: typedefs.GPUNvidiaTeslaK80},
+			{Kind: typedefs.GPUNvidiaTeslaV100},
+			{Kind: typedefs.GPUNvidiaTeslaK80},
 		}},
 	}}
 
@@ -29,7 +30,7 @@ func TestZoneList(t *testing.T) {
 }
 
 func TestZoneGetSubnetwork(t *testing.T) {
-	c := Client{zones: map[string]ZoneInfo{
+	c := &client{zones: map[string]ZoneInfo{
 		"zone-1": {Subnetwork: "subnet-1"},
 		"zone-2": {Subnetwork: "subnet-2"},
 	}}
@@ -45,18 +46,18 @@ func TestZoneGetSubnetwork(t *testing.T) {
 }
 
 func TestGetAccelerator(t *testing.T) {
-	c := Client{zones: map[string]ZoneInfo{
-		"zone-1": {Accelerators: []Accelerator{{kind: typedefs.GPUNvidiaTeslaV100}}},
+	c := &client{zones: map[string]ZoneInfo{
+		"zone-1": {Accelerators: []Accelerator{{Kind: typedefs.GPUNvidiaTeslaV100}}},
 		"zone-2": {Accelerators: []Accelerator{
-			{kind: typedefs.GPUNvidiaTeslaV100},
-			{kind: typedefs.GPUNvidiaTeslaK80},
+			{Kind: typedefs.GPUNvidiaTeslaV100},
+			{Kind: typedefs.GPUNvidiaTeslaK80},
 		}},
 	}}
 
 	// Get existing accelerator
 	accelerator, err := c.GetAccelerator("zone-1", typedefs.GPUNvidiaTeslaV100)
 	assert.Nil(t, err)
-	assert.Equal(t, accelerator.kind, typedefs.GPUNvidiaTeslaV100)
+	assert.Equal(t, accelerator.Kind, typedefs.GPUNvidiaTeslaV100)
 
 	// Fail on unknown accelerator
 	_, err = c.GetAccelerator("zone-1", typedefs.GPUNvidiaTeslaA100)
@@ -72,20 +73,23 @@ func TestFetchZoneInfo(t *testing.T) {
 	ctx := context.Background()
 
 	// Setup clients
-	zoneClient := newProjectZonesClient(ctx, t, []string{"region-1-a", "region-2-a", "region-3-a"})
-	networkClient := newNetworksClient(ctx, t, []string{
+	clients := gcputils.NewMockClientFactory(t)
+	clients.EXPECT().AcceleratorTypes().Return(
+		newAcceleratorTypesClient(ctx, t, map[string][]string{
+			"region-1-a": {"nvidia-tesla-v100", "nvidia-tesla-p100"},
+			"region-2-a": {"nvidia-tesla-k80"},
+		}),
+	)
+	clients.EXPECT().Networks().Return(newNetworksClient(ctx, t, []string{
 		"regions/region-1/subnetwork/subnet1",
 		"regions/region-2/subnetwork/subnet2",
-	})
-	acceleratorTypesClient := newAcceleratorTypesClient(ctx, t, map[string][]string{
-		"region-1-a": {"nvidia-tesla-v100", "nvidia-tesla-p100"},
-		"region-2-a": {"nvidia-tesla-k80"},
-	})
+	}))
+	clients.EXPECT().Zones().Return(newProjectZonesClient(ctx, t, []string{
+		"region-1-a", "region-2-a", "region-3-a"},
+	))
 
 	// Fetch the zone info
-	info, err := fetchZoneInfo(
-		ctx, clients{zoneClient, networkClient, acceleratorTypesClient}, "", "",
-	)
+	info, err := fetchZoneInfo(ctx, clients, "", "")
 	assert.Nil(t, err)
 	assert.Len(t, info, 2)
 
@@ -93,14 +97,14 @@ func TestFetchZoneInfo(t *testing.T) {
 		"region-1-a": {
 			Accelerators: []Accelerator{
 				{
-					uri:                 "https://example.com/nvidia-tesla-v100",
-					kind:                typedefs.GPUNvidiaTeslaV100,
-					maxCountPerInstance: 4,
+					URI:                 "https://example.com/nvidia-tesla-v100",
+					Kind:                typedefs.GPUNvidiaTeslaV100,
+					MaxCountPerInstance: 4,
 				},
 				{
-					uri:                 "https://example.com/nvidia-tesla-p100",
-					kind:                typedefs.GPUNvidiaTeslaP100,
-					maxCountPerInstance: 4,
+					URI:                 "https://example.com/nvidia-tesla-p100",
+					Kind:                typedefs.GPUNvidiaTeslaP100,
+					MaxCountPerInstance: 4,
 				},
 			},
 			Subnetwork: "regions/region-1/subnetwork/subnet1",
@@ -108,9 +112,9 @@ func TestFetchZoneInfo(t *testing.T) {
 		"region-2-a": {
 			Accelerators: []Accelerator{
 				{
-					uri:                 "https://example.com/nvidia-tesla-k80",
-					kind:                typedefs.GPUNvidiaTeslaK80,
-					maxCountPerInstance: 4,
+					URI:                 "https://example.com/nvidia-tesla-k80",
+					Kind:                typedefs.GPUNvidiaTeslaK80,
+					MaxCountPerInstance: 4,
 				},
 			},
 			Subnetwork: "regions/region-2/subnetwork/subnet2",

@@ -40,5 +40,5 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/go-test
         with:
-          flag: genesis
           path: services/genesis/internal
+          flag: genesis

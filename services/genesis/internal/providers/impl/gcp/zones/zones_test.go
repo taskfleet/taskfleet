@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	compute "cloud.google.com/go/compute/apiv1"
@@ -20,49 +21,70 @@ import (
 
 func TestFetchZonesAndSubnetworks(t *testing.T) {
 	ctx := context.Background()
+	testCases := []struct {
+		zones                     []string
+		subnetworks               []string
+		expectedSubnetworkMapping map[string]string
+		errorContains             *string
+	}{
+		{
+			// Correctly fetch zones and subnetworks
+			zones: []string{"europe-west3-b", "europe-west3-c", "europe-north1-a"},
+			subnetworks: []string{
+				"regions/europe-west3/subnetworks/subnet-1",
+				"regions/europe-north1/subnetworks/subnet-2",
+			},
+			expectedSubnetworkMapping: map[string]string{
+				"europe-west3-b":  "regions/europe-west3/subnetworks/subnet-1",
+				"europe-west3-c":  "regions/europe-west3/subnetworks/subnet-1",
+				"europe-north1-a": "regions/europe-north1/subnetworks/subnet-2",
+			},
+		},
+		{
+			// Check that a zone is not returned if there is not network
+			zones: []string{"europe-west3-b", "europe-west3-c", "europe-north1-a"},
+			subnetworks: []string{
+				"regions/europe-north1/subnetworks/subnet-2",
+			},
+			expectedSubnetworkMapping: map[string]string{
+				"europe-north1-a": "regions/europe-north1/subnetworks/subnet-2",
+			},
+		},
+		{
+			// Fail to fetch when there is more than one subnetwork per zone
+			zones: []string{},
+			subnetworks: []string{
+				"regions/europe-west3/subnetworks/subnet1",
+				"regions/europe-west3/subnetworks/subnet2",
+			},
+			errorContains: jack.Ptr("duplicate subnetwork"),
+		},
+		{
+			// Fail if the networks client is broken
+			zones:         []string{},
+			errorContains: jack.Ptr("failed to get GCP network"),
+		},
+		{
+			// Fail if the zone client is broken
+			subnetworks:   []string{},
+			errorContains: jack.Ptr("failed to list zones"),
+		},
+	}
 
-	// Correctly fetch zones and subnetworks
-	zones := []string{"europe-west3-b", "europe-west3-c", "europe-north1-a"}
-	zonesClient := newProjectZonesClient(ctx, t, zones)
-	networksClient := newNetworksClient(ctx, t, []string{
-		"regions/europe-west3/subnetworks/subnet-1",
-		"regions/europe-north1/subnetworks/subnet-2",
-	})
-	mapping, _ := fetchZonesAndSubnetworks(ctx, zonesClient, networksClient, "", "")
-	assert.ElementsMatch(t, jack.MapKeys(mapping), zones)
-	assert.Equal(t, mapping["europe-west3-b"], "regions/europe-west3/subnetworks/subnet-1")
-	assert.Equal(t, mapping["europe-west3-c"], "regions/europe-west3/subnetworks/subnet-1")
-	assert.Equal(t, mapping["europe-north1-a"], "regions/europe-north1/subnetworks/subnet-2")
+	for _, testCase := range testCases {
+		clients := gcputils.NewMockClientFactory(t)
+		clients.EXPECT().Zones().Return(newProjectZonesClient(ctx, t, testCase.zones)).Maybe()
+		clients.EXPECT().Networks().Return(newNetworksClient(ctx, t, testCase.subnetworks)).Maybe()
 
-	// Check that a zone is not returned if there is not network
-	networksClient = newNetworksClient(ctx, t, []string{
-		"regions/europe-north1/subnetworks/subnet-2",
-	})
-	mapping, _ = fetchZonesAndSubnetworks(ctx, zonesClient, networksClient, "", "")
-	assert.ElementsMatch(t, jack.MapKeys(mapping), []string{"europe-north1-a"})
-	assert.Equal(t, mapping["europe-north1-a"], "regions/europe-north1/subnetworks/subnet-2")
-
-	// Fail to fetch when there is more than one subnetwork per zone
-	networksClient = newNetworksClient(ctx, t, []string{
-		"regions/europe-west3/subnetworks/subnet1",
-		"regions/europe-west3/subnetworks/subnet2",
-	})
-	_, err := fetchZonesAndSubnetworks(ctx, zonesClient, networksClient, "", "")
-	assert.NotNil(t, err)
-	assert.ErrorContains(t, err, "duplicate subnetwork")
-
-	// Fail if the networks client is broken
-	networksClient = newNetworksClient(ctx, t, nil)
-	_, err = fetchZonesAndSubnetworks(ctx, zonesClient, networksClient, "", "")
-	assert.NotNil(t, err)
-	assert.ErrorContains(t, err, "failed to get GCP network")
-
-	// Fail if the zone client is broken
-	zonesClient = newProjectZonesClient(ctx, t, nil)
-	networksClient = newNetworksClient(ctx, t, []string{})
-	_, err = fetchZonesAndSubnetworks(ctx, zonesClient, networksClient, "", "")
-	assert.NotNil(t, err)
-	assert.ErrorContains(t, err, "failed to list zones")
+		mapping, err := fetchZonesAndSubnetworks(ctx, clients, "", "")
+		if testCase.errorContains != nil {
+			assert.NotNil(t, err)
+			assert.ErrorContains(t, err, *testCase.errorContains)
+		} else {
+			assert.Nil(t, err)
+			assert.True(t, reflect.DeepEqual(mapping, testCase.expectedSubnetworkMapping))
+		}
+	}
 }
 
 //-------------------------------------------------------------------------------------------------

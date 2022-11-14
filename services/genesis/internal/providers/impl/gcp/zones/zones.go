@@ -6,7 +6,6 @@ import (
 	"path"
 	"strings"
 
-	compute "cloud.google.com/go/compute/apiv1"
 	gcputils "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/utils"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 )
@@ -15,14 +14,13 @@ import (
 // from zones to subnetworks.
 func fetchZonesAndSubnetworks(
 	ctx context.Context,
-	zones *compute.ZonesClient,
-	networks *compute.NetworksClient,
+	clients gcputils.ClientFactory,
 	project string,
 	network string,
 ) (map[string]string, error) {
 	// Find all subnetworks of the provided network
 	regions := map[string]string{}
-	gcpNetwork, err := networks.Get(ctx, &computepb.GetNetworkRequest{
+	gcpNetwork, err := clients.Networks().Get(ctx, &computepb.GetNetworkRequest{
 		Project: project,
 		Network: network,
 	})
@@ -43,7 +41,7 @@ func fetchZonesAndSubnetworks(
 
 	// Find all zones for which there exists a subnetwork
 	result := map[string]string{}
-	it := zones.List(ctx, &computepb.ListZonesRequest{Project: project})
+	it := clients.Zones().List(ctx, &computepb.ListZonesRequest{Project: project})
 	if err := gcputils.Iterate[*computepb.Zone](ctx, it, func(zone *computepb.Zone) error {
 		if subnet, ok := regions[path.Base(zone.GetRegion())]; ok {
 			result[zone.GetName()] = subnet

@@ -35,5 +35,5 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/go-test
         with:
-          flag: jack
           path: packages/jack
+          flag: jack

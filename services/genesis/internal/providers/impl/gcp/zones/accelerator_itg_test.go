@@ -6,18 +6,16 @@ import (
 	"context"
 	"testing"
 
-	compute "cloud.google.com/go/compute/apiv1"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	gcputils "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/utils"
 )
 
 func TestFetchAcceleratorsGcp(t *testing.T) {
 	ctx := context.Background()
-	client, err := compute.NewAcceleratorTypesRESTClient(ctx)
-	require.Nil(t, err)
+	clients := gcputils.NewClientFactory(ctx)
 
 	accelerators, err := fetchAccelerators(
-		ctx, client, gcpProject, []string{"us-central1-a", "europe-west3-b"},
+		ctx, clients.AcceleratorTypes(), gcpProject, []string{"us-central1-a", "europe-west3-b"},
 	)
 	assert.Nil(t, err)
 	assert.Len(t, accelerators, 2)

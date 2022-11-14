@@ -19,23 +19,23 @@ import (
 // Accelerator describes a single type of accelerator in a single zone.
 type Accelerator struct {
 	// The fully qualified name of the accelerator.
-	uri string
-	// The kind of accelerator.
-	kind typedefs.GPUKind
+	URI string
+	// The Kind of accelerator.
+	Kind typedefs.GPUKind
 	// The maximum number of accelerators of this type for a particular instance.
-	maxCountPerInstance uint16
+	MaxCountPerInstance uint16
 }
 
 // MaxCount returns the maximum number of accelerators to be attached to an instance.
 func (a Accelerator) MaxCount() uint16 {
-	return a.maxCountPerInstance
+	return a.MaxCountPerInstance
 }
 
 // Config returns the accelerator configuration for the provided accelerator count.
 func (a Accelerator) Config(count uint16) (*computepb.AcceleratorConfig, error) {
-	if count > a.maxCountPerInstance {
+	if count > a.MaxCountPerInstance {
 		return nil, fmt.Errorf(
-			"too many accelerators requested: %d > %d", count, a.maxCountPerInstance,
+			"too many accelerators requested: %d > %d", count, a.MaxCountPerInstance,
 		)
 	}
 
@@ -48,7 +48,7 @@ func (a Accelerator) Config(count uint16) (*computepb.AcceleratorConfig, error) 
 
 	// And return accelerator config
 	return &computepb.AcceleratorConfig{
-		AcceleratorType:  proto.String(a.uri),
+		AcceleratorType:  proto.String(a.URI),
 		AcceleratorCount: proto.Int32(int32(actualCount)),
 	}, nil
 }
@@ -58,16 +58,16 @@ func (a Accelerator) Config(count uint16) (*computepb.AcceleratorConfig, error) 
 // fetchAccelerators fetches all accelerators that are available in the provided zones. It then
 // returns a list of available accelerators for each zone.
 func fetchAccelerators(
-	ctx context.Context, client *compute.AcceleratorTypesClient, project string, zones []string,
+	ctx context.Context, service *compute.AcceleratorTypesClient, project string, zones []string,
 ) (map[string][]Accelerator, error) {
 	result := make(map[string][]Accelerator)
 	for _, zone := range zones {
 		result[zone] = make([]Accelerator, 0)
 	}
 
-	it := client.AggregatedList(ctx, &computepb.AggregatedListAcceleratorTypesRequest{
-		Project: project,
-	})
+	it := service.AggregatedList(
+		ctx, &computepb.AggregatedListAcceleratorTypesRequest{Project: project},
+	)
 	err := gcputils.Iterate[compute.AcceleratorTypesScopedListPair](
 		ctx, it, func(pair compute.AcceleratorTypesScopedListPair) error {
 			zone := path.Base(pair.Key)
@@ -93,9 +93,9 @@ func fetchAccelerators(
 
 				// Otherwise we add the GPU to the permitted accelerators
 				result[zone] = append(result[zone], Accelerator{
-					uri:                 item.GetSelfLink(),
-					kind:                gpuKind,
-					maxCountPerInstance: uint16(item.GetMaximumCardsPerInstance()),
+					URI:                 item.GetSelfLink(),
+					Kind:                gpuKind,
+					MaxCountPerInstance: uint16(item.GetMaximumCardsPerInstance()),
 				})
 			}
 			return nil

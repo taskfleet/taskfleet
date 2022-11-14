@@ -6,13 +6,25 @@ import (
 	"sync"
 	"time"
 
-	compute "cloud.google.com/go/compute/apiv1"
 	"github.com/borchero/zeus/pkg/zeus"
 	"go.taskfleet.io/packages/jack"
+	gcputils "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/utils"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 	"go.uber.org/zap"
 )
+
+// Client represents a GCP zone client.
+type Client interface {
+	providers.ZoneClient
+
+	// GetSubnetwork returns the full path to the subnetwork in the provided zone if the zone is
+	// managed by the client.
+	GetSubnetwork(zone string) (string, error)
+	// GetAccelerator returns an available accelerator with the specified GPU kind in the provided
+	// zone if there exists such an accelerator.
+	GetAccelerator(zone string, kind typedefs.GPUKind) (Accelerator, error)
+}
 
 // ZoneInfo provides information about a GCP zone.
 type ZoneInfo struct {
@@ -20,9 +32,8 @@ type ZoneInfo struct {
 	Subnetwork   string
 }
 
-// Client represents a GCP zone client.
-type Client struct {
-	clients
+type client struct {
+	clients gcputils.ClientFactory
 	project string
 	network string
 	zones   map[string]ZoneInfo
@@ -30,37 +41,20 @@ type Client struct {
 	mutex sync.Mutex
 }
 
-type clients struct {
-	Zones            *compute.ZonesClient
-	Networks         *compute.NetworksClient
-	AcceleratorTypes *compute.AcceleratorTypesClient
-}
-
 // NewClient initializes a new GCP zone client. Upon calling this function, all zone information
 // is fetched. The given context is used to periodically update the zone info.
 func NewClient(
-	ctx context.Context,
-	zonesClient *compute.ZonesClient,
-	networksClient *compute.NetworksClient,
-	acceleratorTypesClient *compute.AcceleratorTypesClient,
-	projectID string,
-	network string,
-) (*Client, error) {
-	c := clients{
-		Zones:            zonesClient,
-		Networks:         networksClient,
-		AcceleratorTypes: acceleratorTypesClient,
-	}
-
+	ctx context.Context, clients gcputils.ClientFactory, projectID string, network string,
+) (Client, error) {
 	// When initializing the zone client, we want to fetch all available zones, then fetch the
 	// accelerators which are available within each of these zones. Then, the zones are refreshed
 	// once a day, until the context is cancelled.
-	info, err := fetchZoneInfo(ctx, c, projectID, network)
+	info, err := fetchZoneInfo(ctx, clients, projectID, network)
 	if err != nil {
 		return nil, err
 	}
 
-	client := &Client{zones: info}
+	client := &client{clients: clients, zones: info}
 	go client.updateZonesPeriodically(ctx)
 	return client, nil
 }
@@ -69,8 +63,7 @@ func NewClient(
 // INTERFACE
 //-------------------------------------------------------------------------------------------------
 
-// List implements the `providers.ZoneClient` interface.
-func (c *Client) List() []providers.Zone {
+func (c *client) List() []providers.Zone {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -78,7 +71,7 @@ func (c *Client) List() []providers.Zone {
 	for zone, info := range c.zones {
 		gpuKinds := make([]typedefs.GPUKind, 0)
 		for _, accelerator := range info.Accelerators {
-			gpuKinds = append(gpuKinds, accelerator.kind)
+			gpuKinds = append(gpuKinds, accelerator.Kind)
 		}
 		result = append(result, providers.Zone{Name: zone, GPUs: gpuKinds})
 	}
@@ -89,8 +82,7 @@ func (c *Client) List() []providers.Zone {
 // METHODS
 //-------------------------------------------------------------------------------------------------
 
-// GetSubnet returns the full path to the subnetwork
-func (c *Client) GetSubnetwork(zone string) (string, error) {
+func (c *client) GetSubnetwork(zone string) (string, error) {
 	info, ok := c.zones[zone]
 	if !ok {
 		return "", fmt.Errorf("zone %q is not available", zone)
@@ -98,16 +90,14 @@ func (c *Client) GetSubnetwork(zone string) (string, error) {
 	return info.Subnetwork, nil
 }
 
-// GetAccelerator returns an available accelerator with the specified GPU kind in the provided
-// zone if there exists such an accelerator.
-func (c *Client) GetAccelerator(zone string, kind typedefs.GPUKind) (Accelerator, error) {
+func (c *client) GetAccelerator(zone string, kind typedefs.GPUKind) (Accelerator, error) {
 	info, ok := c.zones[zone]
 	if !ok {
 		return Accelerator{}, fmt.Errorf("zone %q is not available", zone)
 	}
 
 	for _, accelerator := range info.Accelerators {
-		if accelerator.kind == kind {
+		if accelerator.Kind == kind {
 			return accelerator, nil
 		}
 	}
@@ -118,7 +108,7 @@ func (c *Client) GetAccelerator(zone string, kind typedefs.GPUKind) (Accelerator
 // HELPERS
 //-------------------------------------------------------------------------------------------------
 
-func (c *Client) updateZonesPeriodically(ctx context.Context) {
+func (c *client) updateZonesPeriodically(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -139,16 +129,16 @@ func (c *Client) updateZonesPeriodically(ctx context.Context) {
 }
 
 func fetchZoneInfo(
-	ctx context.Context, clients clients, project, network string,
+	ctx context.Context, clients gcputils.ClientFactory, project, network string,
 ) (map[string]ZoneInfo, error) {
 	// Fetch all components
-	zones, err := fetchZonesAndSubnetworks(ctx, clients.Zones, clients.Networks, project, network)
+	zones, err := fetchZonesAndSubnetworks(ctx, clients, project, network)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch available zones: %s", err)
 	}
 
 	accelerators, err := fetchAccelerators(
-		ctx, clients.AcceleratorTypes, project, jack.MapKeys(zones),
+		ctx, clients.AcceleratorTypes(), project, jack.MapKeys(zones),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch available accelerators: %s", err)

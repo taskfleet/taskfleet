@@ -19,12 +19,12 @@ import (
 )
 
 func TestAcceleratorMaxCount(t *testing.T) {
-	a := Accelerator{maxCountPerInstance: 4}
+	a := Accelerator{MaxCountPerInstance: 4}
 	assert.EqualValues(t, a.MaxCount(), 4)
 }
 
 func TestAcceleratorConfig(t *testing.T) {
-	a := Accelerator{maxCountPerInstance: 4}
+	a := Accelerator{MaxCountPerInstance: 4}
 
 	config, err := a.Config(1)
 	assert.Nil(t, err)
@@ -54,9 +54,9 @@ func TestFetchAccelerators(t *testing.T) {
 	assert.Len(t, accelerators, 2)
 	assert.Len(t, accelerators["zone-1"], 2)
 	assert.Len(t, accelerators["zone-2"], 1)
-	assert.Equal(t, accelerators["zone-1"][0].kind, typedefs.GPUNvidiaTeslaV100)
-	assert.Equal(t, accelerators["zone-1"][1].kind, typedefs.GPUNvidiaTeslaP100)
-	assert.Equal(t, accelerators["zone-2"][0].kind, typedefs.GPUNvidiaTeslaK80)
+	assert.Equal(t, accelerators["zone-1"][0].Kind, typedefs.GPUNvidiaTeslaV100)
+	assert.Equal(t, accelerators["zone-1"][1].Kind, typedefs.GPUNvidiaTeslaP100)
+	assert.Equal(t, accelerators["zone-2"][0].Kind, typedefs.GPUNvidiaTeslaK80)
 
 	// Parse only one zone
 	accelerators, _ = fetchAccelerators(ctx, client, "", []string{"zone-1"})

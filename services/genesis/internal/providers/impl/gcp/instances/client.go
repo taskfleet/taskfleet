@@ -24,7 +24,7 @@ type Client struct {
 	config     template.GcpConfig
 
 	service *compute.InstancesClient
-	zones   *gcpzones.Client
+	zones   gcpzones.Client
 
 	disksHelper        *disksHelper
 	reservationsHelper *reservationsHelper
@@ -36,14 +36,11 @@ func NewClient(
 	ctx context.Context,
 	identifier, projectID string,
 	config template.GcpConfig,
-	machineTypesClient *compute.MachineTypesClient,
-	instanceClient *compute.InstancesClient,
-	networkClient *compute.NetworksClient,
-	diskClient *compute.DisksClient,
-	zones *gcpzones.Client,
+	clients gcputils.ClientFactory,
+	zones gcpzones.Client,
 ) (*Client, error) {
 	// First, we initialize instance managers for each zone
-	allInstances, err := findAvailableInstanceTypes(ctx, machineTypesClient, zones, projectID)
+	allInstances, err := findAvailableInstanceTypes(ctx, clients.MachineTypes(), zones, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch available instance types: %s", err)
 	}
@@ -58,7 +55,7 @@ func NewClient(
 	}
 
 	// Then, fetch the link of the network
-	network, err := networkClient.Get(ctx, &computepb.GetNetworkRequest{
+	network, err := clients.Networks().Get(ctx, &computepb.GetNetworkRequest{
 		Project: projectID,
 		Network: config.Network.Name,
 	})
@@ -73,7 +70,7 @@ func NewClient(
 	}
 
 	disksHelper, err := newDisksHelper(
-		ctx, projectID, config.Boot, config.ExtraDisks, config.Disks.Type, diskClient,
+		ctx, projectID, config.Boot, config.ExtraDisks, config.Disks.Type, clients.DiskTypes(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare disk configuration: %s", err)
@@ -86,7 +83,7 @@ func NewClient(
 		network:            network.GetSelfLink(),
 		config:             config,
 		zones:              zones,
-		service:            instanceClient,
+		service:            clients.Instances(),
 		disksHelper:        disksHelper,
 		reservationsHelper: reservationsHelper,
 		instanceManagers:   instanceManagers,

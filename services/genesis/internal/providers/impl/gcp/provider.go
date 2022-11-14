@@ -5,6 +5,7 @@ import (
 
 	compute "cloud.google.com/go/compute/apiv1"
 	gcpinstances "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/instances"
+	gcputils "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/utils"
 	gcpzones "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/zones"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/template"
@@ -15,7 +16,7 @@ import (
 
 type provider struct {
 	options   providerOptions
-	zones     *gcpzones.Client
+	zones     gcpzones.Client
 	instances *gcpinstances.Client
 }
 
@@ -44,62 +45,17 @@ func New(
 		)
 	}
 
-	// Now, we can initialize GCP clients...
-	opt := option.WithCredentials(credentials)
-	gcpZoneClient, err := compute.NewZonesRESTClient(ctx, opt)
-	if err != nil {
-		return nil, providers.NewFatalError("failed to create new zone client: %s", err)
-	}
-	deferClose(ctx, gcpZoneClient)
-	gcpNetworkClient, err := compute.NewNetworksRESTClient(ctx, opt)
-	if err != nil {
-		return nil, providers.NewFatalError("failed to create new network client: %s", err)
-	}
-	deferClose(ctx, gcpNetworkClient)
-	gcpAcceleratorTypesClient, err := compute.NewAcceleratorTypesRESTClient(ctx, opt)
-	if err != nil {
-		return nil, providers.NewFatalError("failed to create new accelerator client: %s", err)
-	}
-	deferClose(ctx, gcpAcceleratorTypesClient)
-	gcpMachineTypesClient, err := compute.NewMachineTypesRESTClient(ctx, opt)
-	if err != nil {
-		return nil, providers.NewFatalError("failed to create new machine types client: %s", err)
-	}
-	deferClose(ctx, gcpMachineTypesClient)
-	gcpInstanceClient, err := compute.NewInstancesRESTClient(ctx, opt)
-	if err != nil {
-		return nil, providers.NewFatalError("failed to create new instance client: %s", err)
-	}
-	deferClose(ctx, gcpInstanceClient)
-	gcpDisksClient, err := compute.NewDisksRESTClient(ctx, opt)
-	if err != nil {
-		return nil, providers.NewFatalError("failed to create new disks client: %s", err)
-	}
-	deferClose(ctx, gcpDisksClient)
+	// For initializing GCP clients, we use a dedicated factory
+	clients := gcputils.NewClientFactory(ctx, option.WithCredentials(credentials))
 
 	// ...and eventually, we can create our own higher-level clients
-	zoneClient, err := gcpzones.NewClient(
-		ctx,
-		gcpZoneClient,
-		gcpNetworkClient,
-		gcpAcceleratorTypesClient,
-		o.projectID,
-		config.Network.Name,
-	)
+	zoneClient, err := gcpzones.NewClient(ctx, clients, o.projectID, config.Network.Name)
 	if err != nil {
 		return nil, providers.NewAPIError("failed to prepare zone client", err)
 	}
 
 	instanceClient, err := gcpinstances.NewClient(
-		ctx,
-		o.identifier,
-		o.projectID,
-		config,
-		gcpMachineTypesClient,
-		gcpInstanceClient,
-		gcpNetworkClient,
-		gcpDisksClient,
-		zoneClient,
+		ctx, o.identifier, o.projectID, config, clients, zoneClient,
 	)
 	if err != nil {
 		return nil, providers.NewAPIError("failed to prepare instance client", err)
@@ -126,15 +82,4 @@ func (p *provider) Zones() providers.ZoneClient {
 
 func (p *provider) Instances() providers.InstanceClient {
 	return p.instances
-}
-
-type closeable interface {
-	Close() error
-}
-
-func deferClose(ctx context.Context, objects ...closeable) {
-	<-ctx.Done()
-	for _, obj := range objects {
-		obj.Close() // nolint:errcheck
-	}
 }

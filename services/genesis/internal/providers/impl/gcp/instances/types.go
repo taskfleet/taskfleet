@@ -15,13 +15,12 @@ import (
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 	"go.uber.org/zap"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
-	"google.golang.org/protobuf/proto"
 )
 
 func findAvailableInstanceTypes(
 	ctx context.Context,
 	service *compute.MachineTypesClient,
-	zones *gcpzones.Client,
+	zones gcpzones.Client,
 	projectID string,
 ) (map[string][]instances.Type, error) {
 	// Get instance types by zone
@@ -30,12 +29,15 @@ func findAvailableInstanceTypes(
 		result[zone.Name] = make([]instances.Type, 0)
 	}
 
-	// First, we fetch the aggregated list of all machine types. We need to send two requests here
-	// since the response data does not provide the CPU architecture.
-	processResponse := func(
-		architecture typedefs.CPUArchitecture,
-	) func(pair compute.MachineTypesScopedListPair) error {
-		return func(pair compute.MachineTypesScopedListPair) error {
+	// First, we fetch the aggregated list of all machine types. Unfortunately, GCP does not
+	// currently supply the architecture of machines in the response and filtering in the request
+	// is unreliable (the 'architecture' field is not set for all machine types). Hence, we need
+	// to do the mapping ourselves and update it whenever a new machine type is released...
+	it := service.AggregatedList(ctx, &computepb.AggregatedListMachineTypesRequest{
+		Project: projectID,
+	})
+	if err := gcputils.Iterate[compute.MachineTypesScopedListPair](
+		ctx, it, func(pair compute.MachineTypesScopedListPair) error {
 			zone := path.Base(pair.Key)
 
 			// If the zone is not available, continue
@@ -45,34 +47,14 @@ func findAvailableInstanceTypes(
 
 			// Then iterate over available machine types
 			for _, item := range pair.Value.MachineTypes {
-				if instance := tryUnmarshalInstanceType(ctx, item, architecture); instance != nil {
+				if instance := tryUnmarshalInstanceType(ctx, item); instance != nil {
 					result[zone] = append(result[zone], *instance)
 				}
 			}
 			return nil
-		}
-	}
-
-	// 1/2) x86_64
-	it := service.AggregatedList(ctx, &computepb.AggregatedListMachineTypesRequest{
-		Project: projectID,
-		Filter:  proto.String("architecture=\"x86_64\""),
-	})
-	if err := gcputils.Iterate[compute.MachineTypesScopedListPair](
-		ctx, it, processResponse(typedefs.ArchitectureX86),
+		},
 	); err != nil {
-		return nil, fmt.Errorf("failed to fetch machine types with x86 architecture: %s", err)
-	}
-
-	// 2/2) arm64
-	it = service.AggregatedList(ctx, &computepb.AggregatedListMachineTypesRequest{
-		Project: projectID,
-		Filter:  proto.String("architecture=\"arm64\""),
-	})
-	if err := gcputils.Iterate[compute.MachineTypesScopedListPair](
-		ctx, it, processResponse(typedefs.ArchitectureX86),
-	); err != nil {
-		return nil, fmt.Errorf("failed to fetch machine types with arm architecture: %s", err)
+		return nil, fmt.Errorf("failed to fetch machine types: %s", err)
 	}
 
 	// Then, we add all instance types which provide GPUs. At the moment, GPUs (other than the
@@ -94,7 +76,7 @@ func findAvailableInstanceTypes(
 				continue // no possible configurations if GPU type not available
 			}
 			gpuInstances := explodeAvailableGpuInstanceTypes(
-				zone.Name, result[zone.Name], gpu, accelerator.MaxCount(),
+				zone.Name, n1Instances, gpu, accelerator.MaxCount(),
 			)
 			result[zone.Name] = append(result[zone.Name], gpuInstances...)
 		}
@@ -104,11 +86,7 @@ func findAvailableInstanceTypes(
 	return result, nil
 }
 
-func tryUnmarshalInstanceType(
-	ctx context.Context,
-	item *computepb.MachineType,
-	architecture typedefs.CPUArchitecture,
-) *instances.Type {
+func tryUnmarshalInstanceType(ctx context.Context, item *computepb.MachineType) *instances.Type {
 	// When iterating over the returned machines, we exclude some sets of machines:
 	// * Machines with shared cores since they provide too little resources for proper jobs
 	// * Deprecated machines (even if they are still active)
@@ -117,6 +95,17 @@ func tryUnmarshalInstanceType(
 	if item.GetIsSharedCpu() ||
 		item.GetDeprecated() != nil ||
 		strings.HasPrefix(item.GetName(), "m2-") {
+		return nil
+	}
+
+	// Get the architecture
+	architecture, err := cpuArchitectureForMachineType(item.GetName())
+	if err != nil {
+		zeus.Logger(ctx).Warn(
+			"skipping instance type due to unknown CPU architecture",
+			zap.String("machine_type", item.GetName()),
+			zap.Error(err),
+		)
 		return nil
 	}
 
@@ -132,7 +121,7 @@ func tryUnmarshalInstanceType(
 		// Skip this instance if it cannot be parsed
 		if err != nil {
 			zeus.Logger(ctx).Warn(
-				"skipping GCP machine type due to unknown accelerator",
+				"skipping machine type due to unknown accelerator",
 				zap.String("machine_type", item.GetName()),
 				zap.String("gpu", accelerator.GetGuestAcceleratorType()),
 			)
@@ -165,8 +154,9 @@ func explodeAvailableGpuInstanceTypes(
 				// ideal but makes the design of providers much easier...
 				resources := instances.GPUResources{Kind: gpu, Count: count}
 				result = append(result, instances.Type{
-					Name: extendedInstanceTypeName(instance.Name, &resources),
-					UID:  instance.UID,
+					Name:         extendedInstanceTypeName(instance.Name, &resources),
+					UID:          instance.UID,
+					Architecture: instance.Architecture,
 					Resources: instances.Resources{
 						CPUCount:  instance.CPUCount,
 						MemoryMiB: instance.MemoryMiB,
@@ -188,6 +178,22 @@ func extendedInstanceTypeName(name string, gpu *instances.GPUResources) string {
 	}
 	// Only augment name if n1- instance and GPU attached
 	return fmt.Sprintf("%s-%s-%d", name, gpu.Kind, gpu.Count)
+}
+
+//-------------------------------------------------------------------------------------------------
+// CPU ARCHITECTURE
+// Find all via `gcloud compute machine-types list --format json | jq -r '.[].name' | cut -d'-' -f1 | sort | uniq`
+//-------------------------------------------------------------------------------------------------
+
+func cpuArchitectureForMachineType(name string) (typedefs.CPUArchitecture, error) {
+	family := strings.Split(name, "-")[0]
+	switch family {
+	case "a2", "c2", "c2d", "e2", "m1", "m2", "m3", "n1", "n2", "n2d", "t2d":
+		return typedefs.ArchitectureX86, nil
+	case "t2a":
+		return typedefs.ArchitectureArm, nil
+	}
+	return typedefs.CPUArchitecture(""), fmt.Errorf("unknown machine type family %q", family)
 }
 
 //-------------------------------------------------------------------------------------------------

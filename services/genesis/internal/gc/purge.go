@@ -24,7 +24,7 @@ func newPurger(
 ) *purger {
 	instanceMap := make(map[uuid.UUID]providers.Instance)
 	for _, i := range instances {
-		instanceMap[i.Ref.ID] = i
+		instanceMap[i.Meta.ID] = i
 	}
 	return &purger{client: client, database: database, instances: instanceMap}
 }
@@ -126,9 +126,9 @@ func (p *purger) deleteIfRunningAndTriageDeletion(
 	// Check if we can find the instance on the cloud provider - if so, we delete it. If
 	// deletion was successful or it cannot be found, we triage its deletion.
 	if instance, ok := p.instances[dbInstance.ID]; ok {
-		if err := p.client.Instances().Delete(ctx, instance.Ref); err != nil {
+		if err := p.client.Instances().Delete(ctx, instance.Meta); err != nil {
 			return fmt.Errorf(
-				"failed to delete instance %q from GCP: %s", instance.Ref.ID, err,
+				"failed to delete instance %q from GCP: %s", instance.Meta.ID, err,
 			)
 		}
 	}

@@ -31,6 +31,10 @@ grpc: install-proto-tools ## Generate client and server code for the gRPC interf
 	rm -rf $(CURDIR)/grpc/gen
 	cd $(CURDIR)/grpc/schema && buf generate
 
+.PHONY: mocks
+mocks: install-dev-tools ## Generate Go mocks for all required interfaces.
+	@bash dev/mocks/generate.sh
+
 #--------------------------------------------------------------------------------------------------
 ##@ Testing
 

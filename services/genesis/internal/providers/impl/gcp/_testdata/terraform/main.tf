@@ -1,4 +1,5 @@
 terraform {
+  backend "local" {}
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -9,6 +10,14 @@ terraform {
       version = "~> 3.4"
     }
   }
+}
+
+variable "create_iam" {
+  default = false
+}
+
+output "service_account_email" {
+  value = var.create_iam ? google_service_account.test[0].email : ""
 }
 
 output "network_name" {
@@ -40,6 +49,16 @@ resource "google_compute_subnetwork" "europe_west3" {
 resource "google_compute_subnetwork" "europe_north1" {
   network       = google_compute_network.test.id
   name          = "subnet-${random_uuid.test.result}"
-  region        = "europe-north1"
+  region        = "us-east1"
   ip_cidr_range = "10.0.1.0/24"
+}
+
+#--------------------------------------------------------------------------------------------------
+# IAM
+#--------------------------------------------------------------------------------------------------
+
+resource "google_service_account" "test" {
+  count = var.create_iam ? 1 : 0
+  # Need to substring the UUID as it is too long
+  account_id = "test-${substr(random_uuid.test.result, 0, 23)}"
 }

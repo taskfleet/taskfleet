@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"github.com/docker/go-units"
@@ -13,6 +14,7 @@ import (
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	"google.golang.org/protobuf/proto"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 //-------------------------------------------------------------------------------------------------
@@ -37,17 +39,17 @@ func newDisksHelper(
 	bootConfig template.GcpBootConfig,
 	extraDisksConfig []template.InstanceDisk,
 	diskType string,
-	diskClient *compute.DisksClient,
+	diskClient *compute.DiskTypesClient,
 ) (*disksHelper, error) {
 	// Parse disk sizes
-	bootDiskSize, err := units.RAMInBytes(bootConfig.DiskSize)
+	bootDiskSize, err := resource.ParseQuantity(bootConfig.DiskSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse boot disk size %q: %s", bootConfig.DiskSize, err)
 	}
 
 	extraDisks := []disk{}
 	for i, config := range extraDisksConfig {
-		diskSize, err := units.RAMInBytes(config.SizePerCPU)
+		diskSize, err := resource.ParseQuantity(config.SizePerCPU)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed to parse size of extra disk %d %q: %s", i, config.SizePerCPU, err,
@@ -55,26 +57,30 @@ func newDisksHelper(
 		}
 		extraDisks = append(extraDisks, disk{
 			name:          config.Name,
-			sizePerCpuGiB: int64(diskSize / units.GiB),
+			sizePerCpuGiB: int64(diskSize.Value() / units.GiB),
 		})
 	}
 
-	// Get links to requested disk type
-	it := diskClient.AggregatedList(ctx, &computepb.AggregatedListDisksRequest{
+	// Get links to requested zonal disk type
+	it := diskClient.AggregatedList(ctx, &computepb.AggregatedListDiskTypesRequest{
 		Project: projectID,
 		Filter:  proto.String(fmt.Sprintf("name=\"%s\"", diskType)),
 	})
 	diskTypes := map[string]string{}
-	if err := gcputils.Iterate[compute.DisksScopedListPair](
-		ctx, it, func(pair compute.DisksScopedListPair) error {
-			region := path.Base(pair.Key)
-			if len(pair.Value.GetDisks()) != 1 {
+	if err := gcputils.Iterate[compute.DiskTypesScopedListPair](
+		ctx, it, func(pair compute.DiskTypesScopedListPair) error {
+			if strings.HasPrefix(pair.Key, "regions/") {
+				// We are only interested in zonal disks
+				return nil
+			}
+			zone := path.Base(pair.Key)
+			if len(pair.Value.GetDiskTypes()) != 1 {
 				return fmt.Errorf(
-					"unexpectedly found %d instead of one disk type %q in region %s",
-					len(pair.Value.Disks), diskType, region,
+					"unexpectedly found %d instead of one disk type %q in zone %s",
+					len(pair.Value.GetDiskTypes()), diskType, zone,
 				)
 			}
-			diskTypes[region] = pair.Value.GetDisks()[0].GetSelfLink()
+			diskTypes[zone] = pair.Value.GetDiskTypes()[0].GetSelfLink()
 			return nil
 		},
 	); err != nil {
@@ -82,7 +88,7 @@ func newDisksHelper(
 	}
 
 	return &disksHelper{
-		bootDiskSizeGiB:   int64(bootDiskSize / units.GiB),
+		bootDiskSizeGiB:   int64(bootDiskSize.Value() / units.GiB),
 		bootImages:        bootConfig.ImageLink,
 		extraDisks:        extraDisks,
 		diskTypeSelfLinks: diskTypes,
@@ -95,8 +101,6 @@ func (h *disksHelper) diskConfig(
 	resources instances.Resources,
 	architecture typedefs.CPUArchitecture,
 ) []*computepb.AttachedDisk {
-	region := gcputils.RegionFromZone(zone)
-
 	// First, we need to get the correct source image
 	bootImage := template.MatchingOption(h.bootImages, resources.GPUKind(), architecture)
 
@@ -108,7 +112,7 @@ func (h *disksHelper) diskConfig(
 		InitializeParams: &computepb.AttachedDiskInitializeParams{
 			DiskName:    proto.String(fmt.Sprintf("%s-boot-disk", instanceID)),
 			DiskSizeGb:  proto.Int64(h.bootDiskSizeGiB),
-			DiskType:    proto.String(h.diskTypeSelfLinks[region]),
+			DiskType:    proto.String(h.diskTypeSelfLinks[zone]),
 			SourceImage: bootImage,
 		},
 	}}
@@ -123,7 +127,7 @@ func (h *disksHelper) diskConfig(
 			InitializeParams: &computepb.AttachedDiskInitializeParams{
 				DiskName:   proto.String(fmt.Sprintf("%s-extra-disk-%d", instanceID, i)),
 				DiskSizeGb: proto.Int64(disk.sizePerCpuGiB * int64(resources.CPUCount)),
-				DiskType:   proto.String(h.diskTypeSelfLinks[region]),
+				DiskType:   proto.String(h.diskTypeSelfLinks[zone]),
 			},
 		})
 	}
@@ -145,11 +149,14 @@ func newReservationsHelper(
 	if reservations.Memory == nil {
 		return &reservationsHelper{memoryMiB: 0}, nil
 	}
-	memoryReservation, err := units.RAMInBytes(*reservations.Memory)
+	memoryReservation, err := resource.ParseQuantity(*reservations.Memory)
 	if err != nil {
 		return nil, fmt.Errorf("invalid memory reservation %q", *reservations.Memory)
 	}
-	return &reservationsHelper{memoryMiB: uint32(memoryReservation / units.MiB)}, nil
+
+	return &reservationsHelper{
+		memoryMiB: uint32(memoryReservation.Value() / units.MiB),
+	}, nil
 }
 
 func (h *reservationsHelper) updateResources(resources instances.Resources) instances.Resources {

@@ -1,10 +1,13 @@
 package gcpinstances
 
 import (
+	"fmt"
 	"net"
 	"path"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"go.taskfleet.io/services/genesis/internal/providers/instances"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
@@ -41,7 +44,15 @@ func unmarshalInstance(
 }
 
 func unmarshalInstanceMeta(i *computepb.Instance) (providers.InstanceMeta, error) {
-	return providers.InstanceMetaFromCommonName(i.GetName(), path.Base(i.GetZone()))
+	id, err := uuid.Parse(strings.TrimPrefix(i.GetName(), "taskfleet-"))
+	if err != nil {
+		return providers.InstanceMeta{}, fmt.Errorf("failed to parse instance ID: %s", err)
+	}
+	return providers.InstanceMeta{
+		ID:           id,
+		ProviderID:   i.GetName(),
+		ProviderZone: path.Base(i.GetZone()),
+	}, nil
 }
 
 func unmarshalInstanceSpec(
