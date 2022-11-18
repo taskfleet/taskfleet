@@ -24,7 +24,7 @@ jobs:
     name: Debug
     runs-on: ubuntu-latest
     steps:
-      - run: echo ${{ toJSON(github) }}
+      - run: echo ${{ github }}
 
   lint:
     name: Lint Genesis
