@@ -6,7 +6,7 @@
     "KAFKA_BOOTSTRAP_SERVER": "localhost:9092"
   },
   "go.testEnvFile": "${workspaceRoot}/.env",
-  "go.testTags": "integration",
+  // "go.testTags": "integration",
   "go.testTimeout": "600s",
   "gopls": {
     "build.buildFlags": ["-tags", "integration"]

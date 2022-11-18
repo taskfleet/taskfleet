@@ -1,5 +1,70 @@
 package gcpinstances
 
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"go.taskfleet.io/packages/jack"
+	"go.taskfleet.io/services/genesis/internal/providers/instances"
+	"go.taskfleet.io/services/genesis/internal/template"
+	"go.taskfleet.io/services/genesis/internal/typedefs"
+)
+
+func TestClientFind(t *testing.T) {
+	client := Client{
+		reservationsHelper: jack.Must(newReservationsHelper(template.InstanceReservations{})),
+		instanceManagers: map[string]*instances.Manager{
+			"zone-1": jack.Must(instances.NewManager([]instances.Type{
+				{
+					Name:         "instance-1",
+					Resources:    instances.Resources{CPUCount: 1, MemoryMiB: 4096},
+					Architecture: typedefs.ArchitectureX86,
+				},
+				{
+					Name:         "instance-2",
+					Resources:    instances.Resources{CPUCount: 2, MemoryMiB: 8192},
+					Architecture: typedefs.ArchitectureX86,
+				},
+			})),
+		},
+	}
+
+	testCases := []struct {
+		zone         string
+		resources    instances.Resources
+		architecture typedefs.CPUArchitecture
+		expected     string
+		err          *string
+	}{
+		{
+			zone:         "zone-1",
+			resources:    instances.Resources{CPUCount: 1, MemoryMiB: 6144},
+			architecture: typedefs.ArchitectureX86,
+			expected:     "instance-2",
+		},
+		{
+			zone:         "zone-1",
+			resources:    instances.Resources{CPUCount: 3, MemoryMiB: 6144},
+			architecture: typedefs.ArchitectureX86,
+			err:          jack.Ptr("could not find"),
+		},
+		{
+			zone: "zone-3",
+			err:  jack.Ptr("no instances"),
+		},
+	}
+
+	for _, testCase := range testCases {
+		instance, err := client.Find(testCase.zone, testCase.resources, testCase.architecture)
+		if testCase.err != nil {
+			assert.NotNil(t, err)
+			assert.ErrorContains(t, err, *testCase.err)
+		} else {
+			assert.Equal(t, testCase.expected, instance.Name)
+		}
+	}
+}
+
 // func TestCreateShutdown(t *testing.T) {
 // 	if testing.Short() {
 // 		return

@@ -20,6 +20,11 @@ permissions:
   contents: read
 
 jobs:
+  debug:
+    name: Debug
+    steps:
+      - run: echo ${{ toJSON(github) }}
+
   lint:
     name: Lint Genesis
     runs-on: ubuntu-latest
