@@ -22,6 +22,7 @@ permissions:
 jobs:
   debug:
     name: Debug
+    runs-on: ubuntu-latest
     steps:
       - run: echo ${{ toJSON(github) }}
 
