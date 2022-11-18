@@ -35,3 +35,10 @@ func TestMapKeys(t *testing.T) {
 	expected := []int{2, 3, 4}
 	assert.ElementsMatch(t, actual, expected)
 }
+
+func TestMapValues(t *testing.T) {
+	data := map[int]string{2: "2", 3: "3", 4: "4"}
+	actual := MapValues(data)
+	expected := []string{"2", "3", "4"}
+	assert.ElementsMatch(t, actual, expected)
+}

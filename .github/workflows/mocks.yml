@@ -1,0 +1,39 @@
+name: Mocks
+on:
+  pull_request:
+    paths:
+      - services/**
+      - dev/mocks/**
+      - dev/tools.go
+      - .github/workflows/mocks.yml
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+
+jobs:
+  check-generated:
+    name: Check Generated Mocks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      - name: Install mockery
+        run: go install -mod=readonly github.com/vektra/mockery/v2
+      - name: Generate mocks
+        run: bash dev/mocks/generate.sh
+      - name: Get changed files
+        id: changes
+        uses: tj-actions/verify-changed-files@v12.0
+      - name: Fail on changes
+        if: steps.changes.outputs.changed_files == 'true'
+        run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"

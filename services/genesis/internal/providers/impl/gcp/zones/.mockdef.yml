@@ -1,0 +1,4 @@
+generate:
+  - interface: Client
+    mock: MockClient
+    target: zz_mock_client.go

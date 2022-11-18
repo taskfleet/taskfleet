@@ -35,5 +35,5 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/go-test
         with:
-          flag: mercury
           path: packages/mercury
+          flag: mercury

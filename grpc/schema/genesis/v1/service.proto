@@ -37,7 +37,7 @@ message ListZonesResponse {
 
 message Zone {
     // The provider to which this zone belongs.
-    CloudProvider provider = 1;
+    Provider provider = 1;
     // The provider-specific name of the zone.
     string name = 2;
     // The GPUs available in this zone.

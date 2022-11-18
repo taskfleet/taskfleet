@@ -1,0 +1,42 @@
+[sqlfluff]
+dialect = postgres
+# Exclude the following rules:
+#  - L044: Unknown number of result columns
+exclude_rules = L044
+
+[sqlfluff:indentation]
+# Indentation rules
+indented_ctes = true
+indented_joins = false
+indented_on_contents = true
+indented_using_on = true
+
+[sqlfluff:rules]
+comma_style = trailing
+indent_unit = space
+max_line_length = 120
+tab_space_size = 4
+
+[sqlfluff:rules:L010]
+# Keywords
+capitalisation_policy = upper
+
+[sqlfluff:rules:L014]
+# Column names and aliases
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:L030]
+# Aggregate functions
+extended_capitalisation_policy = upper
+
+[sqlfluff:rules:L040]
+# Boolean values and NULLs
+capitalisation_policy = upper
+
+[sqlfluff:rules:L042]
+# Subqueries in FROM/JOIN statements
+forbid_subquery_in = both
+
+[sqlfluff:rules:L063]
+# Datatypes
+extended_capitalisation_policy = upper

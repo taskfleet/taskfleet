@@ -1,0 +1,7 @@
+DROP TYPE genesis.PROVIDER;
+DROP TYPE genesis.CPU_ARCHITECTURE;
+DROP TYPE genesis.GPU_KIND;
+DROP TYPE genesis.INSTANCE_OWNER;
+DROP TYPE genesis.INSTANCE_COMPONENT;
+DROP TABLE genesis.instance_types;
+DROP TABLE genesis.instances;

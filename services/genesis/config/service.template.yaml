@@ -1,0 +1,34 @@
+kafka:
+  id: instance-manager
+  bootstrapServers:
+    - localhost:9092
+  topic: instance-events
+template:
+  reservations:
+    memory: 256Mi
+  extraDisks:
+    - name: dunno
+      sizePerCpu: 1Gi
+  metadata: {}
+  aws:
+    boot:
+      diskSize: 20Gi
+      amis:
+        - config:
+            owner: ~
+            selector: {}
+    network:
+      vpcSelector: {}
+      securityGroupSelector: {}
+    iam:
+      instanceProfile: ~
+  gcp:
+    boot:
+      diskSize: 20Gi
+      imageLinks:
+        - config: ~
+    network:
+      name: ~
+      tags: []
+    iam:
+      serviceAccountEmail: ~

@@ -1,0 +1,4 @@
+generate:
+  - interface: ClientFactory
+    mock: MockClientFactory
+    target: zz_mock_factory.go
