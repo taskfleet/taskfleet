@@ -8,7 +8,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.9.1
 	github.com/fullstorydev/grpcui v1.3.1
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
