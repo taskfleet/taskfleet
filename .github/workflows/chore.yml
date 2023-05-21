@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: read
+      pull-requests: write
     steps:
       - name: Assign labels (pull request) / Update release draft (main)
         uses: release-drafter/release-drafter@v5
