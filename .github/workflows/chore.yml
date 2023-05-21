@@ -22,7 +22,7 @@ jobs:
         id: lint
         uses: amannn/action-semantic-pull-request@v5
         with:
-          subjectPattern: ^(?![A-Z]).+$ # subject should not start with uppercase letter
+          subjectPattern: ^[A-Z].+$ # subject must start with uppercase letter
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Post comment about invalid PR title
@@ -35,7 +35,7 @@ jobs:
 
             This repository requires pull request titles to follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/) and it looks like your proposed title needs to be adjusted.
 
-            <details><summary>**Details**</summary>
+            <details><summary><b>Details</b></summary>
 
             ```
             ${{ steps.lint.outputs.error_message }}
