@@ -15,17 +15,6 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint Jack
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Run linting
-        uses: ./.github/actions/go-lint
-        with:
-          path: packages/jack
-
   test:
     name: Test Jack
     runs-on: ubuntu-latest

@@ -62,7 +62,7 @@ jobs:
         working-directory: grpc/schema
       - name: Get changed files
         id: changes
-        uses: tj-actions/verify-changed-files@v12.0
+        uses: tj-actions/verify-changed-files@v14
       - name: Fail
         if: steps.changes.outputs.changed_files == 'true'
         run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"

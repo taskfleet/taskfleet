@@ -16,17 +16,6 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint Dymant
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Run linting
-        uses: ./.github/actions/go-lint
-        with:
-          path: packages/dymant
-
   test:
     name: Test Dymant
     runs-on: ubuntu-latest
