@@ -55,8 +55,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     steps:
-      - name: Assign labels based on conventional commits
+      - name: Assign labels (pull request) / Update release draft (main)
         uses: release-drafter/release-drafter@v5
+        with:
+          disable-releaser: ${{ github.event_name == 'pull_request' }}
+          disable-autolabeler: ${{ github.event_name == 'push' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
