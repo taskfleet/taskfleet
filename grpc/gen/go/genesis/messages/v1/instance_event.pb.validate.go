@@ -115,9 +115,18 @@ func (m *InstanceEvent) validate(all bool) error {
 		}
 	}
 
-	switch m.Event.(type) {
-
+	switch v := m.Event.(type) {
 	case *InstanceEvent_Created:
+		if v == nil {
+			err := InstanceEventValidationError{
+				field:  "Event",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetCreated()).(type) {
@@ -149,6 +158,16 @@ func (m *InstanceEvent) validate(all bool) error {
 		}
 
 	case *InstanceEvent_CreationFailed:
+		if v == nil {
+			err := InstanceEventValidationError{
+				field:  "Event",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetCreationFailed()).(type) {
@@ -180,6 +199,16 @@ func (m *InstanceEvent) validate(all bool) error {
 		}
 
 	case *InstanceEvent_Deleted:
+		if v == nil {
+			err := InstanceEventValidationError{
+				field:  "Event",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
 		if all {
 			switch v := interface{}(m.GetDeleted()).(type) {
@@ -210,6 +239,8 @@ func (m *InstanceEvent) validate(all bool) error {
 			}
 		}
 
+	default:
+		_ = v // ensures v is used
 	}
 
 	if len(errors) > 0 {

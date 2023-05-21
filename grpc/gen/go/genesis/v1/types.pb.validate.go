@@ -182,7 +182,7 @@ func (m *InstanceConfig) validate(all bool) error {
 	if _, ok := _InstanceConfig_CloudProvider_NotInLookup[m.GetCloudProvider()]; ok {
 		err := InstanceConfigValidationError{
 			field:  "CloudProvider",
-			reason: "value must not be in list [0]",
+			reason: "value must not be in list [CLOUD_PROVIDER_UNSPECIFIED]",
 		}
 		if !all {
 			return err
@@ -474,7 +474,7 @@ func (m *GPUResources) validate(all bool) error {
 	if _, ok := _GPUResources_Kind_NotInLookup[m.GetKind()]; ok {
 		err := GPUResourcesValidationError{
 			field:  "Kind",
-			reason: "value must not be in list [0]",
+			reason: "value must not be in list [GPU_KIND_UNSPECIFIED]",
 		}
 		if !all {
 			return err
