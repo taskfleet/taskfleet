@@ -1,15 +1,16 @@
+# NOTE: `out` must be relative to the root of the repository
 version: v1
 plugins:
   - name: go
-    out: ../gen/go
+    out: grpc/gen/go
     opt:
       - paths=source_relative
   - name: go-grpc
-    out: ../gen/go
+    out: grpc/gen/go
     opt:
       - paths=source_relative
   - name: validate
-    out: ../gen/go
+    out: grpc/gen/go
     opt:
       - lang=go
       - paths=source_relative

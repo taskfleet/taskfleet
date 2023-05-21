@@ -11,11 +11,12 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,19 +31,58 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
+// define the regex for a UUID once up-front
+var _service_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
 // Validate checks the field values on ListZonesRequest with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
 func (m *ListZonesRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListZonesRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListZonesRequestMultiError, or nil if none found.
+func (m *ListZonesRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListZonesRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
+	if len(errors) > 0 {
+		return ListZonesRequestMultiError(errors)
+	}
+
 	return nil
 }
+
+// ListZonesRequestMultiError is an error wrapping multiple validation errors
+// returned by ListZonesRequest.ValidateAll() if the designated constraints
+// aren't met.
+type ListZonesRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListZonesRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListZonesRequestMultiError) AllErrors() []error { return m }
 
 // ListZonesRequestValidationError is the validation error returned by
 // ListZonesRequest.Validate if the designated constraints aren't met.
@@ -99,17 +139,50 @@ var _ interface {
 } = ListZonesRequestValidationError{}
 
 // Validate checks the field values on ListZonesResponse with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
 func (m *ListZonesResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListZonesResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListZonesResponseMultiError, or nil if none found.
+func (m *ListZonesResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListZonesResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	for idx, item := range m.GetZones() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ListZonesResponseValidationError{
+						field:  fmt.Sprintf("Zones[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ListZonesResponseValidationError{
+						field:  fmt.Sprintf("Zones[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ListZonesResponseValidationError{
 					field:  fmt.Sprintf("Zones[%v]", idx),
@@ -121,8 +194,29 @@ func (m *ListZonesResponse) Validate() error {
 
 	}
 
+	if len(errors) > 0 {
+		return ListZonesResponseMultiError(errors)
+	}
+
 	return nil
 }
+
+// ListZonesResponseMultiError is an error wrapping multiple validation errors
+// returned by ListZonesResponse.ValidateAll() if the designated constraints
+// aren't met.
+type ListZonesResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListZonesResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListZonesResponseMultiError) AllErrors() []error { return m }
 
 // ListZonesResponseValidationError is the validation error returned by
 // ListZonesResponse.Validate if the designated constraints aren't met.
@@ -181,18 +275,52 @@ var _ interface {
 } = ListZonesResponseValidationError{}
 
 // Validate checks the field values on Zone with the rules defined in the proto
-// definition for this message. If any rules are violated, an error is returned.
+// definition for this message. If any rules are violated, the first error
+// encountered is returned, or nil if there are no violations.
 func (m *Zone) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Zone with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in ZoneMultiError, or nil if none found.
+func (m *Zone) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Zone) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Provider
 
 	// no validation rules for Name
 
+	if len(errors) > 0 {
+		return ZoneMultiError(errors)
+	}
+
 	return nil
 }
+
+// ZoneMultiError is an error wrapping multiple validation errors returned by
+// Zone.ValidateAll() if the designated constraints aren't met.
+type ZoneMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ZoneMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ZoneMultiError) AllErrors() []error { return m }
 
 // ZoneValidationError is the validation error returned by Zone.Validate if the
 // designated constraints aren't met.
@@ -250,19 +378,91 @@ var _ interface {
 
 // Validate checks the field values on CreateInstanceRequest with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *CreateInstanceRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CreateInstanceRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CreateInstanceRequestMultiError, or nil if none found.
+func (m *CreateInstanceRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CreateInstanceRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for Id
+	var errors []error
 
-	// no validation rules for Owner
+	if err := m._validateUuid(m.GetId()); err != nil {
+		err = CreateInstanceRequestValidationError{
+			field:  "Id",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Component
+	if utf8.RuneCountInString(m.GetOwner()) < 1 {
+		err := CreateInstanceRequestValidationError{
+			field:  "Owner",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+	if utf8.RuneCountInString(m.GetComponent()) < 1 {
+		err := CreateInstanceRequestValidationError{
+			field:  "Component",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetConfig() == nil {
+		err := CreateInstanceRequestValidationError{
+			field:  "Config",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetConfig()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateInstanceRequestValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateInstanceRequestValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateInstanceRequestValidationError{
 				field:  "Config",
@@ -272,7 +472,37 @@ func (m *CreateInstanceRequest) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
+	if m.GetResources() == nil {
+		err := CreateInstanceRequestValidationError{
+			field:  "Resources",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetResources()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateInstanceRequestValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateInstanceRequestValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateInstanceRequestValidationError{
 				field:  "Resources",
@@ -284,8 +514,37 @@ func (m *CreateInstanceRequest) Validate() error {
 
 	// no validation rules for PreferHpc
 
+	if len(errors) > 0 {
+		return CreateInstanceRequestMultiError(errors)
+	}
+
 	return nil
 }
+
+func (m *CreateInstanceRequest) _validateUuid(uuid string) error {
+	if matched := _service_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// CreateInstanceRequestMultiError is an error wrapping multiple validation
+// errors returned by CreateInstanceRequest.ValidateAll() if the designated
+// constraints aren't met.
+type CreateInstanceRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CreateInstanceRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CreateInstanceRequestMultiError) AllErrors() []error { return m }
 
 // CreateInstanceRequestValidationError is the validation error returned by
 // CreateInstanceRequest.Validate if the designated constraints aren't met.
@@ -345,13 +604,46 @@ var _ interface {
 
 // Validate checks the field values on CreateInstanceResponse with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *CreateInstanceResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CreateInstanceResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CreateInstanceResponseMultiError, or nil if none found.
+func (m *CreateInstanceResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CreateInstanceResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetInstance()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateInstanceResponseValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateInstanceResponseValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateInstanceResponseValidationError{
 				field:  "Instance",
@@ -361,7 +653,26 @@ func (m *CreateInstanceResponse) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetConfig()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateInstanceResponseValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateInstanceResponseValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateInstanceResponseValidationError{
 				field:  "Config",
@@ -371,7 +682,26 @@ func (m *CreateInstanceResponse) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetResources()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateInstanceResponseValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateInstanceResponseValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateInstanceResponseValidationError{
 				field:  "Resources",
@@ -381,8 +711,29 @@ func (m *CreateInstanceResponse) Validate() error {
 		}
 	}
 
+	if len(errors) > 0 {
+		return CreateInstanceResponseMultiError(errors)
+	}
+
 	return nil
 }
+
+// CreateInstanceResponseMultiError is an error wrapping multiple validation
+// errors returned by CreateInstanceResponse.ValidateAll() if the designated
+// constraints aren't met.
+type CreateInstanceResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CreateInstanceResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CreateInstanceResponseMultiError) AllErrors() []error { return m }
 
 // CreateInstanceResponseValidationError is the validation error returned by
 // CreateInstanceResponse.Validate if the designated constraints aren't met.
@@ -442,16 +793,60 @@ var _ interface {
 
 // Validate checks the field values on ListInstancesRequest with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ListInstancesRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListInstancesRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListInstancesRequestMultiError, or nil if none found.
+func (m *ListInstancesRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListInstancesRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for Owner
+	var errors []error
+
+	if utf8.RuneCountInString(m.GetOwner()) < 1 {
+		err := ListInstancesRequestValidationError{
+			field:  "Owner",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return ListInstancesRequestMultiError(errors)
+	}
 
 	return nil
 }
+
+// ListInstancesRequestMultiError is an error wrapping multiple validation
+// errors returned by ListInstancesRequest.ValidateAll() if the designated
+// constraints aren't met.
+type ListInstancesRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListInstancesRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListInstancesRequestMultiError) AllErrors() []error { return m }
 
 // ListInstancesRequestValidationError is the validation error returned by
 // ListInstancesRequest.Validate if the designated constraints aren't met.
@@ -511,16 +906,49 @@ var _ interface {
 
 // Validate checks the field values on ListInstancesResponse with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ListInstancesResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListInstancesResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListInstancesResponseMultiError, or nil if none found.
+func (m *ListInstancesResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListInstancesResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	for idx, item := range m.GetInstances() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ListInstancesResponseValidationError{
+						field:  fmt.Sprintf("Instances[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ListInstancesResponseValidationError{
+						field:  fmt.Sprintf("Instances[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return ListInstancesResponseValidationError{
 					field:  fmt.Sprintf("Instances[%v]", idx),
@@ -532,8 +960,29 @@ func (m *ListInstancesResponse) Validate() error {
 
 	}
 
+	if len(errors) > 0 {
+		return ListInstancesResponseMultiError(errors)
+	}
+
 	return nil
 }
+
+// ListInstancesResponseMultiError is an error wrapping multiple validation
+// errors returned by ListInstancesResponse.ValidateAll() if the designated
+// constraints aren't met.
+type ListInstancesResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListInstancesResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListInstancesResponseMultiError) AllErrors() []error { return m }
 
 // ListInstancesResponseValidationError is the validation error returned by
 // ListInstancesResponse.Validate if the designated constraints aren't met.
@@ -592,14 +1041,47 @@ var _ interface {
 } = ListInstancesResponseValidationError{}
 
 // Validate checks the field values on RunningInstance with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
 func (m *RunningInstance) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RunningInstance with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// RunningInstanceMultiError, or nil if none found.
+func (m *RunningInstance) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RunningInstance) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetInstance()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RunningInstanceValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RunningInstanceValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return RunningInstanceValidationError{
 				field:  "Instance",
@@ -611,7 +1093,26 @@ func (m *RunningInstance) Validate() error {
 
 	// no validation rules for Component
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetConfig()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RunningInstanceValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RunningInstanceValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return RunningInstanceValidationError{
 				field:  "Config",
@@ -621,7 +1122,26 @@ func (m *RunningInstance) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetResources()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RunningInstanceValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RunningInstanceValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return RunningInstanceValidationError{
 				field:  "Resources",
@@ -633,8 +1153,29 @@ func (m *RunningInstance) Validate() error {
 
 	// no validation rules for Hostname
 
+	if len(errors) > 0 {
+		return RunningInstanceMultiError(errors)
+	}
+
 	return nil
 }
+
+// RunningInstanceMultiError is an error wrapping multiple validation errors
+// returned by RunningInstance.ValidateAll() if the designated constraints
+// aren't met.
+type RunningInstanceMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RunningInstanceMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RunningInstanceMultiError) AllErrors() []error { return m }
 
 // RunningInstanceValidationError is the validation error returned by
 // RunningInstance.Validate if the designated constraints aren't met.
@@ -692,13 +1233,57 @@ var _ interface {
 
 // Validate checks the field values on ShutdownInstanceRequest with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ShutdownInstanceRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ShutdownInstanceRequest with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ShutdownInstanceRequestMultiError, or nil if none found.
+func (m *ShutdownInstanceRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ShutdownInstanceRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
+	var errors []error
+
+	if m.GetInstance() == nil {
+		err := ShutdownInstanceRequestValidationError{
+			field:  "Instance",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetInstance()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ShutdownInstanceRequestValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ShutdownInstanceRequestValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ShutdownInstanceRequestValidationError{
 				field:  "Instance",
@@ -708,8 +1293,29 @@ func (m *ShutdownInstanceRequest) Validate() error {
 		}
 	}
 
+	if len(errors) > 0 {
+		return ShutdownInstanceRequestMultiError(errors)
+	}
+
 	return nil
 }
+
+// ShutdownInstanceRequestMultiError is an error wrapping multiple validation
+// errors returned by ShutdownInstanceRequest.ValidateAll() if the designated
+// constraints aren't met.
+type ShutdownInstanceRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ShutdownInstanceRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ShutdownInstanceRequestMultiError) AllErrors() []error { return m }
 
 // ShutdownInstanceRequestValidationError is the validation error returned by
 // ShutdownInstanceRequest.Validate if the designated constraints aren't met.
@@ -769,14 +1375,49 @@ var _ interface {
 
 // Validate checks the field values on ShutdownInstanceResponse with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *ShutdownInstanceResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ShutdownInstanceResponse with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ShutdownInstanceResponseMultiError, or nil if none found.
+func (m *ShutdownInstanceResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ShutdownInstanceResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
+	if len(errors) > 0 {
+		return ShutdownInstanceResponseMultiError(errors)
+	}
+
 	return nil
 }
+
+// ShutdownInstanceResponseMultiError is an error wrapping multiple validation
+// errors returned by ShutdownInstanceResponse.ValidateAll() if the designated
+// constraints aren't met.
+type ShutdownInstanceResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ShutdownInstanceResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ShutdownInstanceResponseMultiError) AllErrors() []error { return m }
 
 // ShutdownInstanceResponseValidationError is the validation error returned by
 // ShutdownInstanceResponse.Validate if the designated constraints aren't met.

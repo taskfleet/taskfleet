@@ -27,3 +27,5 @@ repos:
           - grpc/schema
           - --against
           - https://github.com/taskfleet/taskfleet.git#branch=main,subdir=grpc/schema
+      - id: buf-generate
+        args: [grpc/schema, "--template", grpc/schema/buf.gen.yaml]
