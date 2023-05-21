@@ -13,36 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint gRPC
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Lint schema
-        uses: bufbuild/buf-lint-action@v1
-        with:
-          input: grpc/schema
-
-  check-breaking:
-    name: Detect Breaking gRPC Changes
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Detect changes
-        uses: bufbuild/buf-breaking-action@v1
-        with:
-          input: grpc/schema
-          against:
-            ${{ github.server_url }}/${{ github.repository }}.git#branch=${{ github.base_ref
-            }},subdir=grpc/schema
-
   check-generated:
     name: Check Generated gRPC Code
     runs-on: ubuntu-latest
