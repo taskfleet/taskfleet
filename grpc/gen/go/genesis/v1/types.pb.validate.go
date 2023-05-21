@@ -11,11 +11,12 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,20 +31,77 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
+// define the regex for a UUID once up-front
+var _types_uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
 // Validate checks the field values on Instance with the rules defined in the
-// proto definition for this message. If any rules are violated, an error is returned.
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *Instance) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Instance with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in InstanceMultiError, or nil
+// if none found.
+func (m *Instance) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Instance) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for Id
+	var errors []error
+
+	if err := m._validateUuid(m.GetId()); err != nil {
+		err = InstanceValidationError{
+			field:  "Id",
+			reason: "value must be a valid UUID",
+			cause:  err,
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return InstanceMultiError(errors)
+	}
 
 	return nil
 }
+
+func (m *Instance) _validateUuid(uuid string) error {
+	if matched := _types_uuidPattern.MatchString(uuid); !matched {
+		return errors.New("invalid uuid format")
+	}
+
+	return nil
+}
+
+// InstanceMultiError is an error wrapping multiple validation errors returned
+// by Instance.ValidateAll() if the designated constraints aren't met.
+type InstanceMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceMultiError) AllErrors() []error { return m }
 
 // InstanceValidationError is the validation error returned by
 // Instance.Validate if the designated constraints aren't met.
@@ -100,21 +158,85 @@ var _ interface {
 } = InstanceValidationError{}
 
 // Validate checks the field values on InstanceConfig with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *InstanceConfig) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on InstanceConfig with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in InstanceConfigMultiError,
+// or nil if none found.
+func (m *InstanceConfig) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *InstanceConfig) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for CloudProvider
+	var errors []error
 
-	// no validation rules for Zone
+	if _, ok := _InstanceConfig_CloudProvider_NotInLookup[m.GetCloudProvider()]; ok {
+		err := InstanceConfigValidationError{
+			field:  "CloudProvider",
+			reason: "value must not be in list [CLOUD_PROVIDER_UNSPECIFIED]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := CloudProvider_name[int32(m.GetCloudProvider())]; !ok {
+		err := InstanceConfigValidationError{
+			field:  "CloudProvider",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if utf8.RuneCountInString(m.GetZone()) < 1 {
+		err := InstanceConfigValidationError{
+			field:  "Zone",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for IsSpot
 
+	if len(errors) > 0 {
+		return InstanceConfigMultiError(errors)
+	}
+
 	return nil
 }
+
+// InstanceConfigMultiError is an error wrapping multiple validation errors
+// returned by InstanceConfig.ValidateAll() if the designated constraints
+// aren't met.
+type InstanceConfigMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceConfigMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceConfigMultiError) AllErrors() []error { return m }
 
 // InstanceConfigValidationError is the validation error returned by
 // InstanceConfig.Validate if the designated constraints aren't met.
@@ -170,19 +292,74 @@ var _ interface {
 	ErrorName() string
 } = InstanceConfigValidationError{}
 
+var _InstanceConfig_CloudProvider_NotInLookup = map[CloudProvider]struct{}{
+	0: {},
+}
+
 // Validate checks the field values on InstanceResources with the rules defined
-// in the proto definition for this message. If any rules are violated, an
-// error is returned.
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
 func (m *InstanceResources) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on InstanceResources with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// InstanceResourcesMultiError, or nil if none found.
+func (m *InstanceResources) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *InstanceResources) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for CpuCount
+	var errors []error
 
-	// no validation rules for Memory
+	if m.GetCpuCount() < 1 {
+		err := InstanceResourcesValidationError{
+			field:  "CpuCount",
+			reason: "value must be greater than or equal to 1",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	if v, ok := interface{}(m.GetGpu()).(interface{ Validate() error }); ok {
+	if m.GetMemory() < 1024 {
+		err := InstanceResourcesValidationError{
+			field:  "Memory",
+			reason: "value must be greater than or equal to 1024",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetGpu()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, InstanceResourcesValidationError{
+					field:  "Gpu",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, InstanceResourcesValidationError{
+					field:  "Gpu",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGpu()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return InstanceResourcesValidationError{
 				field:  "Gpu",
@@ -192,8 +369,29 @@ func (m *InstanceResources) Validate() error {
 		}
 	}
 
+	if len(errors) > 0 {
+		return InstanceResourcesMultiError(errors)
+	}
+
 	return nil
 }
+
+// InstanceResourcesMultiError is an error wrapping multiple validation errors
+// returned by InstanceResources.ValidateAll() if the designated constraints
+// aren't met.
+type InstanceResourcesMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceResourcesMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceResourcesMultiError) AllErrors() []error { return m }
 
 // InstanceResourcesValidationError is the validation error returned by
 // InstanceResources.Validate if the designated constraints aren't met.
@@ -252,19 +450,82 @@ var _ interface {
 } = InstanceResourcesValidationError{}
 
 // Validate checks the field values on GPUResources with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *GPUResources) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GPUResources with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GPUResourcesMultiError, or
+// nil if none found.
+func (m *GPUResources) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GPUResources) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	// no validation rules for Kind
+	var errors []error
 
-	// no validation rules for Count
+	if _, ok := _GPUResources_Kind_NotInLookup[m.GetKind()]; ok {
+		err := GPUResourcesValidationError{
+			field:  "Kind",
+			reason: "value must not be in list [GPU_KIND_UNSPECIFIED]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := GPUKind_name[int32(m.GetKind())]; !ok {
+		err := GPUResourcesValidationError{
+			field:  "Kind",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetCount() < 1 {
+		err := GPUResourcesValidationError{
+			field:  "Count",
+			reason: "value must be greater than or equal to 1",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return GPUResourcesMultiError(errors)
+	}
 
 	return nil
 }
+
+// GPUResourcesMultiError is an error wrapping multiple validation errors
+// returned by GPUResources.ValidateAll() if the designated constraints aren't met.
+type GPUResourcesMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GPUResourcesMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GPUResourcesMultiError) AllErrors() []error { return m }
 
 // GPUResourcesValidationError is the validation error returned by
 // GPUResources.Validate if the designated constraints aren't met.
@@ -319,3 +580,7 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GPUResourcesValidationError{}
+
+var _GPUResources_Kind_NotInLookup = map[GPUKind]struct{}{
+	0: {},
+}

@@ -1,12 +1,11 @@
-name: Package Eagle
+name: CI - Package Eagle
 on:
   pull_request:
     paths:
       - packages/eagle/**
       - .github/workflows/pkg-eagle.yml
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,19 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint Eagle
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Run linting
-        uses: ./.github/actions/go-lint
-        with:
-          path: packages/eagle
-
-  test:
-    name: Test Eagle
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

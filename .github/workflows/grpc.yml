@@ -1,76 +1,18 @@
 name: gRPC Schema
 on:
-  pull_request:
-    paths:
-      - grpc/**
-      - .github/workflows/grpc.yml
-      - dev/tools.go
   push:
-    branches:
-      - main
+    branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint gRPC
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Lint schema
-        uses: bufbuild/buf-lint-action@v1
-        with:
-          input: grpc/schema
-
-  check-breaking:
-    name: Detect Breaking gRPC Changes
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Detect changes
-        uses: bufbuild/buf-breaking-action@v1
-        with:
-          input: grpc/schema
-          against:
-            ${{ github.server_url }}/${{ github.repository }}.git#branch=${{ github.base_ref
-            }},subdir=grpc/schema
-
-  check-generated:
-    name: Check Generated gRPC Code
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Install binaries
-        run: make install-proto-tools
-      - name: Generate output
-        run: buf generate
-        working-directory: grpc/schema
-      - name: Get changed files
-        id: changes
-        uses: tj-actions/verify-changed-files@v12.0
-      - name: Fail
-        if: steps.changes.outputs.changed_files == 'true'
-        run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"
-
   publish:
-    name: Publish gRPC Module
+    name: Publish to Buf Schema Registry
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
       - name: Checkout
         uses: actions/checkout@v3

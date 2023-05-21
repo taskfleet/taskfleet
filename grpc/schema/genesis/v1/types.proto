@@ -1,61 +1,67 @@
 syntax = "proto3";
 package genesis.v1;
 
-option go_package = "go.taskfleet.io/grpc/gen/go/genesis/v1;genesis";
-
 import "validate/validate.proto";
+
+option go_package = "go.taskfleet.io/grpc/gen/go/genesis/v1;genesis";
 
 // Instance encapsulates the data required to refer to a specific VM.
 message Instance {
-    // The globally unique identifier of the VM.
-    string id = 1 [(validate.rules).string.uuid = true];
+  // The globally unique identifier of the VM.
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // InstanceConfig describes core metadata about an instance, including its topology.
 message InstanceConfig {
-    // The cloud provider in which the instance is launched.
-    CloudProvider cloud_provider = 1 [(validate.rules).enum = { defined_only: true, not_in: [0] }];
-    // The name of the zone where the instance is launched.
-    string zone = 2 [(validate.rules).string.min_len = 1];
-    // Whether the instance is a spot instance and can be terminated by the cloud provider.
-    bool is_spot = 3;
+  // The cloud provider in which the instance is launched.
+  CloudProvider cloud_provider = 1 [(validate.rules).enum = {
+    defined_only: true,
+    not_in: [0]
+  }];
+  // The name of the zone where the instance is launched.
+  string zone = 2 [(validate.rules).string.min_len = 1];
+  // Whether the instance is a spot instance and can be terminated by the cloud provider.
+  bool is_spot = 3;
 }
 
 // InstanceResources describes the configuration of an instance provisioned by a cloud provider.
 message InstanceResources {
-    // The number of CPUs available on the instance.
-    uint32 cpu_count = 1 [(validate.rules).uint32.gte = 1];
-    // The amount of memory available on the instance in megabytes.
-    uint32 memory = 2 [(validate.rules).uint32.gte = 1024];
-    // The GPU configuration for the instance.
-    GPUResources gpu = 3;
+  // The number of CPUs available on the instance.
+  uint32 cpu_count = 1 [(validate.rules).uint32.gte = 1];
+  // The amount of memory available on the instance in megabytes.
+  uint32 memory = 2 [(validate.rules).uint32.gte = 1024];
+  // The GPU configuration for the instance.
+  GPUResources gpu = 3;
 }
 
 // GPUConfig describes the configuration of a set of GPUs to be attached to a VM.
 message GPUResources {
-    // The kind of GPU to be used.
-    GPUKind kind = 1 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
-    // The number of GPUs to be used.
-    uint32 count = 2 [(validate.rules).uint32.gte = 1];
+  // The kind of GPU to be used.
+  GPUKind kind = 1 [(validate.rules).enum = {
+    defined_only: true,
+    not_in: [0]
+  }];
+  // The number of GPUs to be used.
+  uint32 count = 2 [(validate.rules).uint32.gte = 1];
 }
 
 // GPUKind describes the available (NVIDIA) GPU types.
 enum GPUKind {
-    GPU_KIND_UNSPECIFIED = 0;
-    GPU_KIND_TESLA_K80 = 1; // Launched 11/2014
-    GPU_KIND_TESLA_M60 = 2; // Launched 08/2015
-    GPU_KIND_TESLA_P100 = 3; // Launched 06/2016
-    GPU_KIND_TESLA_P4 = 4; // Launched 09/2016
-    GPU_KIND_TESLA_V100 = 5; // Launched 06/2017
-    GPU_KIND_TESLA_T4 = 6; // Launched 11/2018
-    GPU_KIND_TESLA_A100 = 7; // Launched 05/2020
-    GPU_KIND_TESLA_A10 = 8; // Launched 04/2021
-    // GPU_KIND_TESLA_H100 = 9; // Launched 03/2022
+  GPU_KIND_UNSPECIFIED = 0;
+  GPU_KIND_TESLA_K80 = 1; // Launched 11/2014
+  GPU_KIND_TESLA_M60 = 2; // Launched 08/2015
+  GPU_KIND_TESLA_P100 = 3; // Launched 06/2016
+  GPU_KIND_TESLA_P4 = 4; // Launched 09/2016
+  GPU_KIND_TESLA_V100 = 5; // Launched 06/2017
+  GPU_KIND_TESLA_T4 = 6; // Launched 11/2018
+  GPU_KIND_TESLA_A100 = 7; // Launched 05/2020
+  GPU_KIND_TESLA_A10 = 8; // Launched 04/2021
+  // GPU_KIND_TESLA_H100 = 9; // Launched 03/2022
 }
 
 // CloudProvider describes the available cloud providers.
 enum CloudProvider {
-    CLOUD_PROVIDER_UNSPECIFIED = 0;
-    CLOUD_PROVIDER_AMAZON_WEB_SERVICES = 1;
-    CLOUD_PROVIDER_GOOGLE_CLOUD_PLATFORM = 2;
+  CLOUD_PROVIDER_UNSPECIFIED = 0;
+  CLOUD_PROVIDER_AMAZON_WEB_SERVICES = 1;
+  CLOUD_PROVIDER_GOOGLE_CLOUD_PLATFORM = 2;
 }

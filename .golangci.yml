@@ -4,10 +4,15 @@ linters:
   enable:
     - goimports
     - revive
+    - stylecheck
+issues:
+  include:
+    - EXC0002
+    - EXC0014
 linters-settings:
   revive:
     rules:
       - name: package-comments
         disabled: true
-issues:
-  exclude-use-default: false
+      - name: unused-receiver
+        severity: warning

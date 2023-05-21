@@ -11,11 +11,12 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
@@ -30,18 +31,52 @@ var (
 	_ = time.Duration(0)
 	_ = (*url.URL)(nil)
 	_ = (*mail.Address)(nil)
-	_ = ptypes.DynamicAny{}
+	_ = anypb.Any{}
+	_ = sort.Sort
 )
 
 // Validate checks the field values on InstanceEvent with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
 func (m *InstanceEvent) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on InstanceEvent with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in InstanceEventMultiError, or
+// nil if none found.
+func (m *InstanceEvent) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *InstanceEvent) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetInstance()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, InstanceEventValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, InstanceEventValidationError{
+					field:  "Instance",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetInstance()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return InstanceEventValidationError{
 				field:  "Instance",
@@ -51,7 +86,26 @@ func (m *InstanceEvent) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetTimestamp()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetTimestamp()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, InstanceEventValidationError{
+					field:  "Timestamp",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, InstanceEventValidationError{
+					field:  "Timestamp",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetTimestamp()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return InstanceEventValidationError{
 				field:  "Timestamp",
@@ -61,11 +115,39 @@ func (m *InstanceEvent) Validate() error {
 		}
 	}
 
-	switch m.Event.(type) {
-
+	switch v := m.Event.(type) {
 	case *InstanceEvent_Created:
+		if v == nil {
+			err := InstanceEventValidationError{
+				field:  "Event",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
-		if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(m.GetCreated()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, InstanceEventValidationError{
+						field:  "Created",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, InstanceEventValidationError{
+						field:  "Created",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return InstanceEventValidationError{
 					field:  "Created",
@@ -76,8 +158,37 @@ func (m *InstanceEvent) Validate() error {
 		}
 
 	case *InstanceEvent_CreationFailed:
+		if v == nil {
+			err := InstanceEventValidationError{
+				field:  "Event",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
-		if v, ok := interface{}(m.GetCreationFailed()).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(m.GetCreationFailed()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, InstanceEventValidationError{
+						field:  "CreationFailed",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, InstanceEventValidationError{
+						field:  "CreationFailed",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetCreationFailed()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return InstanceEventValidationError{
 					field:  "CreationFailed",
@@ -88,8 +199,37 @@ func (m *InstanceEvent) Validate() error {
 		}
 
 	case *InstanceEvent_Deleted:
+		if v == nil {
+			err := InstanceEventValidationError{
+				field:  "Event",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
 
-		if v, ok := interface{}(m.GetDeleted()).(interface{ Validate() error }); ok {
+		if all {
+			switch v := interface{}(m.GetDeleted()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, InstanceEventValidationError{
+						field:  "Deleted",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, InstanceEventValidationError{
+						field:  "Deleted",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetDeleted()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return InstanceEventValidationError{
 					field:  "Deleted",
@@ -99,10 +239,33 @@ func (m *InstanceEvent) Validate() error {
 			}
 		}
 
+	default:
+		_ = v // ensures v is used
+	}
+
+	if len(errors) > 0 {
+		return InstanceEventMultiError(errors)
 	}
 
 	return nil
 }
+
+// InstanceEventMultiError is an error wrapping multiple validation errors
+// returned by InstanceEvent.ValidateAll() if the designated constraints
+// aren't met.
+type InstanceEventMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceEventMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceEventMultiError) AllErrors() []error { return m }
 
 // InstanceEventValidationError is the validation error returned by
 // InstanceEvent.Validate if the designated constraints aren't met.
@@ -160,13 +323,46 @@ var _ interface {
 
 // Validate checks the field values on InstanceCreatedEvent with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *InstanceCreatedEvent) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on InstanceCreatedEvent with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// InstanceCreatedEventMultiError, or nil if none found.
+func (m *InstanceCreatedEvent) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *InstanceCreatedEvent) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetConfig()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, InstanceCreatedEventValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, InstanceCreatedEventValidationError{
+					field:  "Config",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return InstanceCreatedEventValidationError{
 				field:  "Config",
@@ -176,7 +372,26 @@ func (m *InstanceCreatedEvent) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
+	if all {
+		switch v := interface{}(m.GetResources()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, InstanceCreatedEventValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, InstanceCreatedEventValidationError{
+					field:  "Resources",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetResources()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return InstanceCreatedEventValidationError{
 				field:  "Resources",
@@ -188,8 +403,29 @@ func (m *InstanceCreatedEvent) Validate() error {
 
 	// no validation rules for Hostname
 
+	if len(errors) > 0 {
+		return InstanceCreatedEventMultiError(errors)
+	}
+
 	return nil
 }
+
+// InstanceCreatedEventMultiError is an error wrapping multiple validation
+// errors returned by InstanceCreatedEvent.ValidateAll() if the designated
+// constraints aren't met.
+type InstanceCreatedEventMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceCreatedEventMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceCreatedEventMultiError) AllErrors() []error { return m }
 
 // InstanceCreatedEventValidationError is the validation error returned by
 // InstanceCreatedEvent.Validate if the designated constraints aren't met.
@@ -249,18 +485,53 @@ var _ interface {
 
 // Validate checks the field values on InstanceCreationFailedEvent with the
 // rules defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *InstanceCreationFailedEvent) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on InstanceCreationFailedEvent with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// InstanceCreationFailedEventMultiError, or nil if none found.
+func (m *InstanceCreationFailedEvent) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *InstanceCreationFailedEvent) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
+
+	var errors []error
 
 	// no validation rules for Reason
 
 	// no validation rules for Message
 
+	if len(errors) > 0 {
+		return InstanceCreationFailedEventMultiError(errors)
+	}
+
 	return nil
 }
+
+// InstanceCreationFailedEventMultiError is an error wrapping multiple
+// validation errors returned by InstanceCreationFailedEvent.ValidateAll() if
+// the designated constraints aren't met.
+type InstanceCreationFailedEventMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceCreationFailedEventMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceCreationFailedEventMultiError) AllErrors() []error { return m }
 
 // InstanceCreationFailedEventValidationError is the validation error returned
 // by InstanceCreationFailedEvent.Validate if the designated constraints
@@ -321,16 +592,51 @@ var _ interface {
 
 // Validate checks the field values on InstanceDeletedEvent with the rules
 // defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
+// violated, the first error encountered is returned, or nil if there are no violations.
 func (m *InstanceDeletedEvent) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on InstanceDeletedEvent with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// InstanceDeletedEventMultiError, or nil if none found.
+func (m *InstanceDeletedEvent) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *InstanceDeletedEvent) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
+	var errors []error
+
 	// no validation rules for Reason
+
+	if len(errors) > 0 {
+		return InstanceDeletedEventMultiError(errors)
+	}
 
 	return nil
 }
+
+// InstanceDeletedEventMultiError is an error wrapping multiple validation
+// errors returned by InstanceDeletedEvent.ValidateAll() if the designated
+// constraints aren't met.
+type InstanceDeletedEventMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m InstanceDeletedEventMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m InstanceDeletedEventMultiError) AllErrors() []error { return m }
 
 // InstanceDeletedEventValidationError is the validation error returned by
 // InstanceDeletedEvent.Validate if the designated constraints aren't met.
