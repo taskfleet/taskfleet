@@ -1,4 +1,4 @@
-<p align="left"><img src="./assets/logo.png" alt="Taskfleet" height="80px" /></p>
+<p align="center"><img src="./assets/logo.png" alt="Taskfleet" height="80px" /></p>
 
 ---
 
