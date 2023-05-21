@@ -9,14 +9,15 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-permissions:
-  contents: read
-  pull-requests: write
 
 jobs:
   conventional-commit:
     name: Conventional Commit
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Check valid conventional commit message
         id: lint
@@ -52,6 +53,8 @@ jobs:
   release-drafter:
     name: Release Drafter
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Assign labels based on conventional commits
         uses: release-drafter/release-drafter@v5
