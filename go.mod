@@ -8,7 +8,6 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.10.1
 	github.com/fullstorydev/grpcui v1.3.1
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -33,6 +32,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.3 // indirect
 	github.com/fullstorydev/grpcurl v1.8.6 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/jhump/protoreflect v1.12.0 // indirect
 	github.com/lyft/protoc-gen-star/v2 v2.0.1 // indirect
