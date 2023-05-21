@@ -1,12 +1,11 @@
-name: Package Mercury
+name: CI - Package Jack
 on:
   pull_request:
     paths:
-      - packages/mercury/**
-      - .github/workflows/pkg-mercury.yml
+      - packages/jack/**
+      - .github/workflows/pkg-jack.yml
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,8 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test Mercury
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,5 +23,5 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/go-test
         with:
-          flag: mercury
-          path: packages/mercury
+          flag: jack
+          path: packages/jack

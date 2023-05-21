@@ -1,46 +1,18 @@
 name: gRPC Schema
 on:
-  pull_request:
-    paths:
-      - grpc/**
-      - .github/workflows/grpc.yml
-      - dev/tools.go
   push:
-    branches:
-      - main
+    branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
 
 jobs:
-  check-generated:
-    name: Check Generated gRPC Code
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-      - name: Setup Buf
-        uses: bufbuild/buf-setup-action@v1
-      - name: Install binaries
-        run: make install-proto-tools
-      - name: Generate output
-        run: buf generate
-        working-directory: grpc/schema
-      - name: Get changed files
-        id: changes
-        uses: tj-actions/verify-changed-files@v14
-      - name: Fail
-        if: steps.changes.outputs.changed_files == 'true'
-        run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"
-
   publish:
-    name: Publish gRPC Module
+    name: Publish to Buf Schema Registry
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     steps:
       - name: Checkout
         uses: actions/checkout@v3

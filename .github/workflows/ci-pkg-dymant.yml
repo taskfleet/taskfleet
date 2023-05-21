@@ -1,4 +1,4 @@
-name: Package Dymant
+name: CI - Package Dymant
 on:
   pull_request:
     paths:
@@ -6,8 +6,7 @@ on:
       - packages/eagle/**
       - .github/workflows/pkg-dymant.yml
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,8 +15,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test Dymant
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     services:
       kafka:

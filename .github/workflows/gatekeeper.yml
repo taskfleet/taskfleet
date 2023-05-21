@@ -1,8 +1,7 @@
 name: Gatekeeper
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   actions: read
