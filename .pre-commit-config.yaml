@@ -1,0 +1,31 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude: testdata/
+      - id: check-added-large-files
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.7.1
+    hooks:
+      - id: prettier
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.52.2
+    hooks:
+      - id: golangci-lint
+        args: ["--go", "1.19"]
+  - repo: https://github.com/bufbuild/buf
+    rev: v1.19.0
+    hooks:
+      - id: buf-lint
+        args: [grpc/schema]
+      - id: buf-format
+        args: [grpc/schema]
+      - id: buf-breaking
+        args:
+          - grpc/schema
+          - --against
+          - https://github.com/taskfleet/taskfleet.git#branch=main,subdir=grpc/schema
+      - id: buf-generate
+        args: [grpc/schema, "--template", grpc/schema/buf.gen.yaml]

@@ -1,14 +1,11 @@
-name: Prettier
+name: CI - Package Eagle
 on:
   pull_request:
     paths:
-      - "**.md"
-      - "**.yml"
-      - "**.yaml"
-      - "**.json"
+      - packages/eagle/**
+      - .github/workflows/pkg-eagle.yml
   push:
-    branches:
-      - main
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,13 +14,14 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Check Prettier
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Run prettier
-        uses: actionsx/prettier@v2
+      - name: Run tests
+        uses: ./.github/actions/go-test
         with:
-          args: --check .
+          path: packages/eagle
+          flag: eagle

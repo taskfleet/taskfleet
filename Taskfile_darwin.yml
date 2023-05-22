@@ -1,0 +1,17 @@
+version: "3"
+tasks:
+  install-system-tools:
+    desc: Install system tools for interactive development.
+    vars:
+      GO_REQUIRED: "1.19"
+      GO_INSTALLED:
+        sh: go version | cut -d' ' -f3 | cut -c3-
+    preconditions:
+      - sh: '[ "{{.GO_REQUIRED}}" = "$(echo -e "{{.GO_REQUIRED}}\n{{.GO_INSTALLED}}" | sort -V | head -n1)" ]'
+        msg: "Found go version {{.GO_INSTALLED}} but this repository requires at least version {{.GO_REQUIRED}}."
+      - sh: which rustup
+        msg: "It seems like you don't have rustup installed. Install it from https://rustup.rs."
+      - sh: which docker
+        msg: "It seems like you don't have docker installed. Install it from https://docs.docker.com/engine/install/."
+    cmds:
+      - brew install buf
