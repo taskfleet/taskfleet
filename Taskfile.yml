@@ -1,0 +1,36 @@
+version: "3"
+dotenv: [.env]
+includes:
+  dev:
+    taskfile: ./Taskfile_{{OS}}.yml
+    optional: true
+
+tasks:
+  default:
+    cmds:
+      - task -l
+    silent: true
+
+  # ------------------------------------------- DOCKER ------------------------------------------ #
+
+  docker:run-services:
+    interactive: true
+    ignore_error: true
+    desc: Run external services for testing via Docker.
+    cmds:
+      - docker compose --file dev/docker-compose.yml up
+
+  # -------------------------------------------- gRPC ------------------------------------------- #
+
+  grpc:install-tools:
+    desc: Install tools required for generating Protobuf code.
+    cmds:
+      - go install -mod=readonly $(go list -f "{{`{{range .Imports}}{{.}} {{end}}`}}" grpc/dev/tools.go)
+
+  grpc:generate:
+    desc: Generate gRPC/Protobuf library from API and schema definitions.
+    deps:
+      - grpc:install-tools
+    cmds:
+      - rm -rf grpc/gen
+      - buf generate grpc/schema --template grpc/schema/buf.gen.yaml

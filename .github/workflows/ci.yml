@@ -25,7 +25,9 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
-      - name: Install proto tools
-        run: make install-proto-tools
+      - name: Setup go-task
+        uses: arduino/setup-task@v1
+      - name: Install required tools
+        run: task grpc:install-tools
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.0
