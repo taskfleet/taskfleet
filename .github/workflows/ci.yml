@@ -27,6 +27,8 @@ jobs:
           go-version-file: go.mod
       - name: Setup go-task
         uses: arduino/setup-task@v1
+        with:
+          repo-token: ${{ github.token }}
       - name: Install required tools
         run: task grpc:install-tools
       - name: Run pre-commit
