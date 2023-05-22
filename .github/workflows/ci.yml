@@ -27,8 +27,6 @@ jobs:
           go-version-file: go.mod
       - name: Setup go-task
         uses: arduino/setup-task@v1
-      - run: which task
-      - run: task
       - name: Install required tools
         run: task grpc:install-tools
       - name: Run pre-commit
