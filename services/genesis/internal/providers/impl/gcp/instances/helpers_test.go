@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 
 	compute "cloud.google.com/go/compute/apiv1"
@@ -100,15 +101,17 @@ func TestNewReservationsHelper(t *testing.T) {
 		{value: jack.Ptr("1X"), isErr: true},
 	}
 
-	for i, testCase := range testCases {
-		helper, err := newReservationsHelper(template.InstanceReservations{
-			Memory: testCase.value,
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			helper, err := newReservationsHelper(template.InstanceReservations{
+				Memory: tc.value,
+			})
+			assert.Equal(t, tc.isErr, err != nil)
+			if err == nil {
+				fmt.Println(tc.expected, helper.memoryMiB)
+				assert.Equal(t, tc.expected, helper.memoryMiB)
+			}
 		})
-		assert.Equal(t, testCase.isErr, err != nil, "unexpected error state in test case %d", i+1)
-		if err == nil {
-			fmt.Println(testCase.expected, helper.memoryMiB)
-			assert.Equal(t, testCase.expected, helper.memoryMiB)
-		}
 	}
 }
 

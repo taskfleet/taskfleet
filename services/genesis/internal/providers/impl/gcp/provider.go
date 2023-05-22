@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"context"
+	"fmt"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	gcpinstances "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/instances"
@@ -34,14 +35,14 @@ func New(
 	// First, we obtain credentials for authentication
 	credentials, err := google.FindDefaultCredentials(ctx, compute.DefaultAuthScopes()...)
 	if err != nil {
-		return nil, providers.NewClientError("failed to find default credentials", err)
+		return nil, fmt.Errorf("failed to find default credentials: %s", err)
 	}
 
 	// Then, we find all metadata required for initializing the provider
 	o := newOptions(options...)
 	if err := o.inferMissingIfPossible(ctx, credentials); err != nil {
-		return nil, providers.NewClientError(
-			"provider options were not complete and could not be inferred", err,
+		return nil, fmt.Errorf(
+			"provider options were not complete and could not be inferred: %s", err,
 		)
 	}
 
@@ -51,14 +52,14 @@ func New(
 	// ...and eventually, we can create our own higher-level clients
 	zoneClient, err := gcpzones.NewClient(ctx, clients, o.projectID, config.Network.Name)
 	if err != nil {
-		return nil, providers.NewAPIError("failed to prepare zone client", err)
+		return nil, fmt.Errorf("failed to prepare zone client: %s", err)
 	}
 
 	instanceClient, err := gcpinstances.NewClient(
 		ctx, o.identifier, o.projectID, config, clients, zoneClient,
 	)
 	if err != nil {
-		return nil, providers.NewAPIError("failed to prepare instance client", err)
+		return nil, fmt.Errorf("failed to prepare instance client: %s", err)
 	}
 
 	return &provider{

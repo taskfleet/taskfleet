@@ -33,7 +33,7 @@ jobs:
         run: bash dev/mocks/generate.sh
       - name: Get changed files
         id: changes
-        uses: tj-actions/verify-changed-files@v12.0
+        uses: tj-actions/verify-changed-files@v14
       - name: Fail on changes
         if: steps.changes.outputs.changed_files == 'true'
         run: "echo 'Changed Files: ${{ steps.changes.outputs.changed_files }}' && exit 1"

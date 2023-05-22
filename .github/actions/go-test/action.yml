@@ -6,10 +6,10 @@ inputs:
     description: The path to the package to test.
     required: true
   flag:
-    description: The flag to use for codecov. Coverage is not uploaded if left empty.
+    description: The flag to use for codecov.
     default: ""
   tags:
-    description: Tags to pass to `go test`.
+    description: Tags to pass to `go test`, separated by comma.
     default: ""
 
 runs:
@@ -29,7 +29,6 @@ runs:
           -covermode=atomic \
           -coverpkg=./${{ inputs.path }}/...
     - name: Upload to codecov
-      if: inputs.flag != ''
       uses: codecov/codecov-action@v3
       with:
         files: coverage.out

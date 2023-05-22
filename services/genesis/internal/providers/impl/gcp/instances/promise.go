@@ -9,7 +9,7 @@ import (
 )
 
 // InstancePromise describes an instance that is currently being created.
-type InstancePromise struct {
+type instancePromise struct {
 	meta      providers.InstanceMeta
 	operation *compute.Operation
 	client    *Client
@@ -18,15 +18,14 @@ type InstancePromise struct {
 // Await waits for the instance to materialize. The given context should have a sufficiently large
 // timeout as this operation might take some time. If an error is returned, this usually means that
 // the instance could not be created but could be caused by issues with the network.
-func (p *InstancePromise) Await(ctx context.Context) (providers.Instance, error) {
+func (p *instancePromise) Await(ctx context.Context) (providers.Instance, error) {
 	// First, we need to wait for the creation operation to finish
 	if err := p.operation.Wait(ctx); err != nil {
-		return providers.Instance{},
-			providers.NewAPIError("failed to wait for instance creation", err)
+		return providers.Instance{}, fmt.Errorf("failed to wait for instance creation: %w", err)
 	}
 	if p.operation.Proto().Error != nil {
-		return providers.Instance{}, providers.NewClientError(
-			fmt.Sprintf("failed to create instance: %s", p.operation.Proto().Error), nil,
+		return providers.Instance{}, fmt.Errorf(
+			"failed to create instance: %s", p.operation.Proto().Error,
 		)
 	}
 	// Upon success, we can query the full instance

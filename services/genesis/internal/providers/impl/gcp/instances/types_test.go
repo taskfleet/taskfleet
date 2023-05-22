@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	compute "cloud.google.com/go/compute/apiv1"
@@ -171,9 +172,11 @@ func TestTryUnmarshalInstanceType(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	for i, testCase := range testCases {
-		actual := tryUnmarshalInstanceType(ctx, testCase.input)
-		assert.Equalf(t, testCase.expected, actual, "test case %d failed", i+1)
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			actual := tryUnmarshalInstanceType(ctx, tc.input)
+			assert.Equal(t, tc.expected, actual)
+		})
 	}
 }
 
@@ -294,9 +297,11 @@ func TestExtendedInstanceTypeName(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		actual := extendedInstanceTypeName(testCase.instance, testCase.gpu)
-		assert.Equal(t, testCase.expected, actual)
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			actual := extendedInstanceTypeName(tc.instance, tc.gpu)
+			assert.Equal(t, tc.expected, actual)
+		})
 	}
 }
 
@@ -351,16 +356,19 @@ func TestMaxCpuAndMemoryForGpu(t *testing.T) {
 		{gpuKind: typedefs.GPUNvidiaTeslaA100Gb80, gpuCount: 1, maxCpuCount: 0, maxMemoryGiB: 0},
 	}
 
-	for _, testCase := range testCases {
-		cpu, mem := maxCpuAndMemoryForGpu(testCase.gpuKind, testCase.gpuCount, testCase.zone)
-		assert.Equalf(
-			t, testCase.maxCpuCount, cpu,
-			"max CPU does not match for %d %s", testCase.gpuCount, testCase.gpuKind,
-		)
-		assert.Equal(
-			t, testCase.maxMemoryGiB, mem,
-			"max memory does not match for %d %s", testCase.gpuCount, testCase.gpuKind,
-		)
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			cpu, mem := maxCpuAndMemoryForGpu(tc.gpuKind, tc.gpuCount, tc.zone)
+			assert.Equalf(
+				t, tc.maxCpuCount, cpu,
+				"max CPU does not match for %d %s", tc.gpuCount, tc.gpuKind,
+			)
+			assert.Equal(
+				t, tc.maxMemoryGiB, mem,
+				"max memory does not match for %d %s", tc.gpuCount, tc.gpuKind,
+			)
+		})
+
 	}
 }
 

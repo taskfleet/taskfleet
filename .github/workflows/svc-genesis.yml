@@ -20,12 +20,6 @@ permissions:
   contents: read
 
 jobs:
-  debug:
-    name: Debug
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo ${{ github }}
-
   lint:
     name: Lint Genesis
     runs-on: ubuntu-latest

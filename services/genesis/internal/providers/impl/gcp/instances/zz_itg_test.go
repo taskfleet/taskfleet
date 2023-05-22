@@ -2,7 +2,9 @@
 
 package gcpinstances
 
-import "os"
+import (
+	"os"
+)
 
 var gcpProject = func() string {
 	project := os.Getenv("GCP_PROJECT")

@@ -66,7 +66,7 @@ func unmarshalInstanceSpec(
 			path.Base(i.GetGuestAccelerators()[0].GetAcceleratorType()),
 		)
 		if err != nil {
-			return providers.InstanceSpec{}, providers.NewFatalError("unknown kind of gpu", err)
+			return providers.InstanceSpec{}, fmt.Errorf("unknown kind of gpu: %s", err)
 		}
 		gpuResources = &instances.GPUResources{
 			Kind:  gpuKind,
@@ -80,7 +80,7 @@ func unmarshalInstanceSpec(
 	if err != nil {
 		// Raising a fatal error here since any instance type should be known since it was created
 		// by Genesis
-		return providers.InstanceSpec{}, providers.NewFatalError("unknown instance type", err)
+		return providers.InstanceSpec{}, fmt.Errorf("unknown instance type: %s", err)
 	}
 
 	// Spot status is determined by the instance's provisioning type
@@ -100,23 +100,21 @@ func unmarshalInstanceStatus(
 	createdAt, err := time.Parse(time.RFC3339, i.GetCreationTimestamp())
 	if err != nil {
 		return providers.InstanceStatus{},
-			providers.NewFatalError("instance returned invalid creation timestamp", err)
+			fmt.Errorf("instance returned invalid creation timestamp: %s", err)
 	}
 
 	// Get network interface to read network configuration
 	if len(i.GetNetworkInterfaces()) == 0 {
-		return providers.InstanceStatus{},
-			providers.NewFatalError("instance is not attached to any networks", nil)
+		return providers.InstanceStatus{}, fmt.Errorf("instance is not attached to any networks")
 	} else if len(i.GetNetworkInterfaces()) > 1 {
-		return providers.InstanceStatus{},
-			providers.NewFatalError("instance attached to multiple networks", nil)
+		return providers.InstanceStatus{}, fmt.Errorf("instance attached to multiple networks")
 	}
 	iface := i.GetNetworkInterfaces()[0]
 
 	// Get internal IP
 	internalIP := net.ParseIP(iface.GetNetworkIP())
 	if internalIP == nil {
-		return providers.InstanceStatus{}, providers.NewFatalError("invalid network IP", nil)
+		return providers.InstanceStatus{}, fmt.Errorf("invalid network IP")
 	}
 
 	// Get external IP

@@ -4,6 +4,7 @@ package gcpinstances
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -18,8 +19,9 @@ func TestFindAvailableInstanceTypesGcp(t *testing.T) {
 	ctx := context.Background()
 
 	// Set up Terraform
-	t.Setenv("GOOGLE_PROJECT", gcpProject)
-	tf := tftest.Setup(ctx, t, "../_testdata/terraform")
+	tf := tftest.Setup(ctx, t, "../_testdata/terraform",
+		fmt.Sprintf("gcp_project=%s", gcpProject),
+	)
 
 	// Get the network name from Terraform
 	networkName := tftest.GetOutput[string](ctx, t, tf, "network_name")

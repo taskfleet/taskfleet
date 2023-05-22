@@ -101,9 +101,7 @@ func (c *Client) Find(
 	// Ensure that zone is managed
 	manager, ok := c.instanceManagers[zone]
 	if !ok {
-		return instances.Type{}, providers.NewClientError(
-			fmt.Sprintf("no instances are managed in zone %q", zone), nil,
-		)
+		return instances.Type{}, fmt.Errorf("no instances are managed in zone %q", zone)
 	}
 
 	// Add reservations to resource requirement if required
@@ -144,9 +142,7 @@ func (c *Client) Create(
 	tags := &computepb.Tags{Items: c.config.Network.Tags}
 	subnetwork, err := c.zones.GetSubnetwork(meta.ProviderZone)
 	if err != nil {
-		return nil, providers.NewClientError(
-			fmt.Sprintf("failed to find subnetwork for zone %q", meta.ProviderZone), err,
-		)
+		return nil, fmt.Errorf("failed to find subnetwork for zone %q", meta.ProviderZone)
 	}
 	networkInterface := computepb.NetworkInterface{
 		Network:    proto.String(c.network),
@@ -163,13 +159,13 @@ func (c *Client) Create(
 	// 4) Resources
 	guestAccelerators := []*computepb.AcceleratorConfig{}
 	if spec.InstanceType.GPU != nil {
-		accelerator, err := c.zones.GetAccelerator(meta.ProviderID, spec.InstanceType.GPU.Kind)
+		accelerator, err := c.zones.GetAccelerator(meta.ProviderZone, spec.InstanceType.GPU.Kind)
 		if err != nil {
-			return nil, providers.NewClientError("accelerator does not exist in zone", err)
+			return nil, fmt.Errorf("accelerator does not exist in zone: %s", err)
 		}
 		config, err := accelerator.Config(spec.InstanceType.GPU.Count)
 		if err != nil {
-			return nil, providers.NewClientError("failed to obtain requested number of GPUs", err)
+			return nil, fmt.Errorf("failed to obtain requested number of GPUs: %s", err)
 		}
 		guestAccelerators = []*computepb.AcceleratorConfig{config}
 	}
@@ -218,11 +214,11 @@ func (c *Client) Create(
 		InstanceResource: &instance,
 	})
 	if err != nil {
-		return nil, providers.NewAPIError("failed to initiate instance creation", err)
+		return nil, fmt.Errorf("failed to initiate instance creation: %s", err)
 	}
 
 	// Finally, we can create the promise
-	return &InstancePromise{meta: meta, client: c, operation: operation}, nil
+	return &instancePromise{meta: meta, client: c, operation: operation}, nil
 }
 
 // Get implements the `providers.InstanceClient` interface.
@@ -233,8 +229,8 @@ func (c *Client) Get(
 	// requested
 	manager, ok := c.instanceManagers[meta.ProviderZone]
 	if !ok {
-		return providers.Instance{}, providers.NewClientError(
-			fmt.Sprintf("requested instance from unmanaged zone %q", meta.ProviderZone), nil,
+		return providers.Instance{}, fmt.Errorf(
+			"requested instance from unmanaged zone %q", meta.ProviderZone,
 		)
 	}
 
@@ -245,8 +241,7 @@ func (c *Client) Get(
 		Zone:     meta.ProviderZone,
 	})
 	if err != nil {
-		return providers.Instance{},
-			providers.NewAPIError(fmt.Sprintf("failed to obtain instance %q", meta.ID), err)
+		return providers.Instance{}, fmt.Errorf("failed to obtain instance %q: %s", meta.ID, err)
 	}
 
 	// And eventually unmarshal the returned instance into our own type
@@ -281,7 +276,7 @@ func (c *Client) List(ctx context.Context) ([]providers.Instance, error) {
 			return nil
 		},
 	); err != nil {
-		return nil, providers.NewAPIError("failed to fetch all instances", err)
+		return nil, fmt.Errorf("failed to fetch all instances: %s", err)
 	}
 	return instances, nil
 }
@@ -294,15 +289,13 @@ func (c *Client) Delete(ctx context.Context, meta providers.InstanceMeta) error 
 		Zone:     meta.ProviderZone,
 	})
 	if err != nil {
-		return providers.NewAPIError("failed to initiate instance deletion", err)
+		return fmt.Errorf("failed to initiate instance deletion: %w", err)
 	}
 	if err := operation.Wait(ctx); err != nil {
-		return providers.NewAPIError("failed to await instance deletion", err)
+		return fmt.Errorf("failed to await instance deletion: %w", err)
 	}
 	if operation.Proto().Error != nil {
-		return providers.NewClientError(
-			fmt.Sprintf("instance deletion failed: %s", operation.Proto().Error), nil,
-		)
+		return fmt.Errorf("instance deletion failed: %s", operation.Proto().Error)
 	}
 	return nil
 }

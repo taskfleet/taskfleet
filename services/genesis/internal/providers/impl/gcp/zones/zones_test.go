@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 
 	compute "cloud.google.com/go/compute/apiv1"
@@ -71,19 +72,21 @@ func TestFetchZonesAndSubnetworks(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		clients := gcputils.NewMockClientFactory(t)
-		clients.EXPECT().Zones().Return(newProjectZonesClient(ctx, t, testCase.zones)).Maybe()
-		clients.EXPECT().Networks().Return(newNetworksClient(ctx, t, testCase.subnetworks)).Maybe()
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			clients := gcputils.NewMockClientFactory(t)
+			clients.EXPECT().Zones().Return(newProjectZonesClient(ctx, t, tc.zones)).Maybe()
+			clients.EXPECT().Networks().Return(newNetworksClient(ctx, t, tc.subnetworks)).Maybe()
 
-		mapping, err := fetchZonesAndSubnetworks(ctx, clients, "", "")
-		if testCase.errorContains != nil {
-			assert.NotNil(t, err)
-			assert.ErrorContains(t, err, *testCase.errorContains)
-		} else {
-			assert.Nil(t, err)
-			assert.True(t, reflect.DeepEqual(mapping, testCase.expectedSubnetworkMapping))
-		}
+			mapping, err := fetchZonesAndSubnetworks(ctx, clients, "", "")
+			if tc.errorContains != nil {
+				assert.NotNil(t, err)
+				assert.ErrorContains(t, err, *tc.errorContains)
+			} else {
+				assert.Nil(t, err)
+				assert.True(t, reflect.DeepEqual(mapping, tc.expectedSubnetworkMapping))
+			}
+		})
 	}
 }
 

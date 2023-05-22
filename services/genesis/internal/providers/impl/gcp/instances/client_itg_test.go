@@ -5,6 +5,7 @@ package gcpinstances
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/google/uuid"
@@ -19,13 +20,34 @@ import (
 	"go.taskfleet.io/services/genesis/internal/typedefs"
 )
 
-func TestFindCreateListDeleteGcp(t *testing.T) {
+func TestFindCreateListDelete(t *testing.T) {
+	testCases := []struct {
+		resources instances.Resources
+		instance  string
+	}{
+		{
+			resources: instances.Resources{
+				CPUCount:  1,
+				MemoryMiB: 3500,
+			},
+			instance: "n1-standard-1",
+		},
+		{
+			resources: instances.Resources{
+				CPUCount:  1,
+				MemoryMiB: 3500,
+				GPU:       &instances.GPUResources{Kind: typedefs.GPUNvidiaTeslaK80, Count: 1},
+			},
+			instance: "n1-standard-1-nvidia-tesla-k80-1",
+		},
+	}
+
 	ctx := context.Background()
 
 	// Set up Terraform
-	t.Setenv("GOOGLE_PROJECT", gcpProject)
 	tf := tftest.Setup(ctx, t, "../_testdata/terraform",
 		"create_iam=true",
+		fmt.Sprintf("gcp_project=%s", gcpProject),
 	)
 
 	// Get the network name from Terraform
@@ -63,39 +85,48 @@ func TestFindCreateListDeleteGcp(t *testing.T) {
 	client, err := NewClient(ctx, id, gcpProject, config, clients, zones)
 	require.Nil(t, err)
 
-	// Find instance
-	instanceType, err := client.Find(
-		"us-east1-c", instances.Resources{CPUCount: 1, MemoryMiB: 3500}, typedefs.ArchitectureX86,
-	)
-	require.Nil(t, err)
-	assert.Equal(t, instanceType.Name, "n1-standard-1")
+	// Test Group I: Find and create instances in parallel
+	torig := t
+	t.Run("create", func(t *testing.T) {
+		for i, tc := range testCases {
+			t.Run(strconv.Itoa(i), func(t *testing.T) {
+				t.Parallel()
 
-	// Create instance
-	instanceID := uuid.New()
-	promise, err := client.Create(ctx, providers.InstanceMeta{
-		ID:           instanceID,
-		ProviderZone: "us-east1-c",
-	}, providers.InstanceSpec{
-		InstanceType: instanceType,
+				// Find instance
+				instanceType, err := client.Find(
+					"us-east1-c", tc.resources, typedefs.ArchitectureX86,
+				)
+				require.Nil(t, err)
+				assert.Equal(t, instanceType.Name, tc.instance)
+
+				// Create instance
+				instanceID := uuid.New()
+				promise, err := client.Create(ctx, providers.InstanceMeta{
+					ID:           instanceID,
+					ProviderZone: "us-east1-c",
+				}, providers.InstanceSpec{
+					InstanceType: instanceType,
+				})
+				require.Nil(t, err)
+
+				// Await instance
+				instance, err := promise.Await(ctx)
+				require.Nil(t, err)
+				assert.Equal(t, instanceID, instance.Meta.ID)
+				assert.Equal(t, fmt.Sprintf("taskfleet-%s", instanceID), instance.Meta.ProviderID)
+				assert.Equal(t, instanceType, instance.Spec.InstanceType)
+
+				// Ensure that instance is deleted at the end of the test function
+				torig.Cleanup(func() {
+					err := client.Delete(ctx, instance.Meta)
+					assert.Nil(t, err)
+				})
+			})
+		}
 	})
-	require.Nil(t, err)
 
-	// Await instance
-	instance, err := promise.Await(ctx)
-	assert.Nil(t, err)
-	assert.Equal(t, instanceID, instance.Meta.ID)
-	assert.Equal(t, fmt.Sprintf("taskfleet-%s", instanceID), instance.Meta.ProviderID)
-	assert.Equal(t, instanceType, instance.Spec.InstanceType)
-
-	// Ensure that instance is deleted
-	t.Cleanup(func() {
-		err := client.Delete(ctx, instance.Meta)
-		assert.Nil(t, err)
-	})
-
-	// List all instances
+	// List all instances and check that all are returned
 	instances, err := client.List(ctx)
 	assert.Nil(t, err)
-	require.Len(t, instances, 1)
-	assert.Equal(t, instances[0], instance)
+	require.Len(t, instances, len(testCases))
 }

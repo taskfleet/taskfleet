@@ -12,9 +12,19 @@ terraform {
   }
 }
 
+variable "gcp_project" {}
+
+provider "google" {
+  project = var.gcp_project
+}
+
+#--------------------------------------------------------------------------------------------------
+
 variable "create_iam" {
   default = false
 }
+
+#--------------------------------------------------------------------------------------------------
 
 output "service_account_email" {
   value = var.create_iam ? google_service_account.test[0].email : ""

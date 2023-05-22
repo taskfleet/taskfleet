@@ -1,34 +1,27 @@
 package gcpinstances
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"strconv"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.taskfleet.io/packages/jack"
+	gcpzones "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/zones"
 	"go.taskfleet.io/services/genesis/internal/providers/instances"
+	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.taskfleet.io/services/genesis/internal/template"
 	"go.taskfleet.io/services/genesis/internal/typedefs"
+	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestClientFind(t *testing.T) {
-	client := Client{
-		reservationsHelper: jack.Must(newReservationsHelper(template.InstanceReservations{})),
-		instanceManagers: map[string]*instances.Manager{
-			"zone-1": jack.Must(instances.NewManager([]instances.Type{
-				{
-					Name:         "instance-1",
-					Resources:    instances.Resources{CPUCount: 1, MemoryMiB: 4096},
-					Architecture: typedefs.ArchitectureX86,
-				},
-				{
-					Name:         "instance-2",
-					Resources:    instances.Resources{CPUCount: 2, MemoryMiB: 8192},
-					Architecture: typedefs.ArchitectureX86,
-				},
-			})),
-		},
-	}
-
 	testCases := []struct {
 		zone         string
 		resources    instances.Resources
@@ -54,101 +47,83 @@ func TestClientFind(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
-		instance, err := client.Find(testCase.zone, testCase.resources, testCase.architecture)
-		if testCase.err != nil {
-			assert.NotNil(t, err)
-			assert.ErrorContains(t, err, *testCase.err)
-		} else {
-			assert.Equal(t, testCase.expected, instance.Name)
-		}
+	ctx := context.Background()
+	client := testClient(ctx, t, template.GcpConfig{}, nil, nil)
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			instance, err := client.Find(tc.zone, tc.resources, tc.architecture)
+			if tc.err != nil {
+				assert.NotNil(t, err)
+				assert.ErrorContains(t, err, *tc.err)
+			} else {
+				assert.Equal(t, tc.expected, instance.Name)
+			}
+		})
 	}
 }
 
-// func TestCreateShutdown(t *testing.T) {
-// 	if testing.Short() {
-// 		return
-// 	}
+func TestClientCreate(t *testing.T) {
+	testCases := []struct {
+		config template.GcpConfig
+		meta   providers.InstanceMeta
+		spec   providers.InstanceSpec
+		err    *string
+	}{
+		{
+			config: template.GcpConfig{
+				GcpInstanceConfig: template.GcpInstanceConfig{
+					Iam: template.GcpIamConfig{ServiceAccountEmail: "hi@example.com"},
+				},
+			},
+			meta: providers.InstanceMeta{
+				ID:           uuid.New(),
+				ProviderZone: "zone-1",
+			},
+			spec: providers.InstanceSpec{
+				InstanceType: instances.Type{
+					Name: "n1-standard-1",
+					UID:  "http://example.com/n1-standard-1",
+				},
+			},
+		},
+	}
 
-// 	ctx := context.Background()
-// 	service, err := compute.NewService(ctx)
-// 	require.Nil(t, err)
-// 	zonesClient, err := gcpzones.NewClient(ctx, service, os.Getenv("GCP_PROJECT"))
-// 	require.Nil(t, err)
+	ctx := context.Background()
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			// Create zones mock client
+			zones := gcpzones.NewMockClient(t)
+			zones.EXPECT().GetSubnetwork(mock.Anything).Return("my-subnetwork", nil)
+			zones.EXPECT().GetAccelerator(mock.Anything, typedefs.GPUNvidiaTeslaK80).Return(
+				gcpzones.Accelerator{
+					URI:                 "https://nvidia-k80",
+					Kind:                typedefs.GPUNvidiaTeslaK80,
+					MaxCountPerInstance: 4,
+				},
+				nil,
+			).Maybe()
 
-// 	client, err := NewClient(
-// 		ctx,
-// 		os.Getenv("GCP_IDENTIFIER"),
-// 		os.Getenv("GCP_NETWORK"),
-// 		os.Getenv("GCP_PROJECT"),
-// 		service,
-// 		zonesClient,
-// 	)
-// 	require.Nil(t, err)
+			// Create handle function
+			handle := func(w http.ResponseWriter, r *http.Request) {
+				result := jack.Must(protojson.Marshal(&computepb.Operation{}))
+				jack.Must(w.Write(result))
+			}
 
-// 	// First, create the instance
-// 	creationContext, cancel := context.WithTimeout(ctx, 2*time.Minute)
-// 	defer cancel()
-
-// 	// Create an ID
-// 	id, err := uuid.NewRandom()
-// 	require.Nil(t, err)
-
-// 	// Try to start the instance in a fixed zone
-// 	zone := "us-central1-a"
-
-// 	// Get a suitable machine type
-// 	instanceType, err := client.Find(zone, instances.Resources{
-// 		CPUCount:  1,
-// 		MemoryMiB: 2000,
-// 	})
-// 	require.Nil(t, err)
-
-// 	// Check if the returned machine type is sensible
-// 	assert.Equal(t, "n1-standard-1", instanceType.Name)
-// 	assert.Equal(t, uint16(1), instanceType.CPUCount)
-// 	assert.Equal(t, uint32(3840), instanceType.MemoryMiB)
-
-// 	// Then create the instance specification
-// 	meta := providers.InstanceRef{
-// 		ID:   id,
-// 		Zone: zone,
-// 	}
-// 	spec := providers.InstanceSpec{
-// 		Compute: providers.ComputeConfig{
-// 			InstanceType: instanceType,
-// 			IsSpot:       false,
-// 		},
-// 		Boot: providers.BootConfig{
-// 			ImageLink:   "projects/debian-cloud/global/images/family/debian-10",
-// 			DiskSizeGiB: 10,
-// 		},
-// 		Metadata: providers.MetadataConfig{
-// 			Labels: map[string]string{
-// 				LabelKeyOwnedBy: "genesis-test",
-// 			},
-// 		},
-// 	}
-
-// 	promise, err := client.Create(creationContext, meta, spec)
-// 	require.Nil(t, err)
-
-// 	// Then wait for the instance to be running
-// 	instance, err := promise.Await(creationContext)
-// 	require.Nil(t, err)
-
-// 	assert.True(t, instance.Status.CreationTimestamp.Before(time.Now()))
-// 	assert.True(t, instance.Status.CreationTimestamp.After(time.Now().Add(-2*time.Minute)))
-
-// 	hostname := fmt.Sprintf("%s.%s.c.%s.internal",
-// 		instance.Meta.CommonName(), instance.Meta.ProviderZone, client.ProjectID,
-// 	)
-// 	assert.Equal(t, hostname, instance.Status.Network.InternalHostname)
-
-// 	// Eventually, purge the instance
-// 	deletionContext, cancel := context.WithTimeout(ctx, 5*time.Minute)
-// 	defer cancel()
-
-// 	err = client.Delete(deletionContext, instance.Ref)
-// 	require.Nil(t, err)
-// }
+			// Create client and run instance creation
+			client := testClient(ctx, t, tc.config, zones, handle)
+			promise, err := client.Create(ctx, tc.meta, tc.spec)
+			if tc.err != nil {
+				assert.NotNil(t, err)
+				assert.ErrorContains(t, err, *tc.err)
+			} else {
+				require.Nil(t, err)
+				instancePromise := promise.(*instancePromise)
+				assert.Equal(t, tc.meta.ID, instancePromise.meta.ID)
+				assert.Equal(
+					t, fmt.Sprintf("taskfleet-%s", tc.meta.ID), instancePromise.meta.ProviderID,
+				)
+			}
+		})
+	}
+}
