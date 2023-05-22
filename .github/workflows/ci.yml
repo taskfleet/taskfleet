@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: 3.11
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
       - name: Setup go-task
