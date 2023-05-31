@@ -3,8 +3,6 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-PULUMI_STACK ?= local
-
 #--------------------------------------------------------------------------------------------------
 ##@ General
 
@@ -34,12 +32,6 @@ grpcui: ## Run a grpcui server to interactively play with the instance manager s
 		-plaintext \
 		localhost:5404
 
-#--------------------------------------------------------------------------------------------------
-##@ Docker
-
-.PHONY: build
-build-service: ## Build the Docker image for the instance manager service.
-	docker build -t taskfleet-instance-manager -f docker/service.Dockerfile $(CURDIR)/../..
 
 #--------------------------------------------------------------------------------------------------
 

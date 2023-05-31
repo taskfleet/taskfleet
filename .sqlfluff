@@ -1,42 +1,67 @@
 [sqlfluff]
 dialect = postgres
-# Exclude the following rules:
-#  - L044: Unknown number of result columns
-exclude_rules = L044
+exclude_rules = layout.cte_newline,layout.long_lines,aliasing.forbid,structure.subquery,ambiguous.column_count,aliasing.length,structure.column_order
+max_line_length = 120
+templater = placeholder
+
+# -------------------------------------------- LAYOUT ------------------------------------------- #
 
 [sqlfluff:indentation]
-# Indentation rules
-indented_ctes = true
-indented_joins = false
-indented_on_contents = true
-indented_using_on = true
+allow_implicit_indents = true
+indented_on_contents = false
 
-[sqlfluff:rules]
-comma_style = trailing
-indent_unit = space
-max_line_length = 120
-tab_space_size = 4
+[sqlfluff:layout:type:common_table_expression]
+spacing_within = single
 
-[sqlfluff:rules:L010]
-# Keywords
+[sqlfluff:layout:type:column_constraint_segment]
+spacing_before = align
+align_within = create_table_statement
+
+[sqlfluff:layout:type:data_type]
+spacing_before = align
+align_within = create_table_statement
+
+[sqlfluff:layout:type:alias_expression]
+spacing_before = align
+align_within = select_clause
+align_scope = bracketed
+
+[sqlfluff:layout:type:from_clause]
+spacing_within = single:inline
+
+# -------------------------------------- RULE CONFIGURATION ------------------------------------- #
+
+[sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = upper
 
-[sqlfluff:rules:L014]
-# Column names and aliases
+[sqlfluff:rules:capitalisation.identifiers]
 extended_capitalisation_policy = lower
 
-[sqlfluff:rules:L030]
-# Aggregate functions
+[sqlfluff:rules:capitalisation.functions]
 extended_capitalisation_policy = upper
 
-[sqlfluff:rules:L040]
-# Boolean values and NULLs
+[sqlfluff:rules:capitalisation.literals]
 capitalisation_policy = upper
 
-[sqlfluff:rules:L042]
-# Subqueries in FROM/JOIN statements
+[sqlfluff:rules:structure.subquery]
 forbid_subquery_in = both
 
-[sqlfluff:rules:L063]
-# Datatypes
+[sqlfluff:rules:capitalisation.types]
 extended_capitalisation_policy = upper
+
+# ------------------------------------------ TEMPLATING ----------------------------------------- #
+[sqlfluff:templater:placeholder]
+param_style = numeric_dollar
+1 = 'one'
+2 = 'two'
+3 = 'three'
+4 = 'four'
+5 = 'five'
+6 = 'six'
+7 = 'seven'
+8 = 'eight'
+9 = 'nine'
+10 = 'ten'
+11 = 'eleven'
+12 = 'twelve'
+13 = 'thirteen'

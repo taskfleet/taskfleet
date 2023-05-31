@@ -1,5 +1,7 @@
-# Ignore generated credentials from google-github-actions/auth
+# Credentials generated from google-github-actions/auth
 gha-creds-*.json
+# go-task
+.task/
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,macos,dotenv,visualstudiocode,terraform
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,macos,dotenv,visualstudiocode,terraform

@@ -5,14 +5,13 @@ import (
 	"fmt"
 
 	"github.com/borchero/zeus/pkg/zeus"
-	"go.taskfleet.io/services/genesis/internal/db"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.uber.org/zap"
 )
 
 // GarbageCollector implements the logic for purging orphaned instances.
 type GarbageCollector interface {
-
 	// Collect attempts purging orphaned instances. If this attempt fails, an error is returned and
 	// this method should be called again after a reasonable amount of time. An error is also
 	// returned if the collection is not finished until the given context is cancelled.
@@ -26,7 +25,7 @@ type garbageCollector struct {
 
 // Options wraps the services that are required by the garbage collector.
 type Options struct {
-	Database db.Connection
+	Database db.Querier
 	Client   providers.Provider
 }
 

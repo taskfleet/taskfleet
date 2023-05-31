@@ -7,7 +7,7 @@ import (
 
 	"github.com/borchero/zeus/pkg/zeus"
 	"github.com/google/uuid"
-	"go.taskfleet.io/services/genesis/internal/db"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.uber.org/zap"
 )

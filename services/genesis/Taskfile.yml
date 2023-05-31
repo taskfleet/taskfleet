@@ -1,0 +1,22 @@
+version: "3"
+tasks:
+  build:
+    desc: Build all docker containers required for running Genesis.
+    cmds:
+      - docker build -t taskfleet-genesis -f docker/service.Dockerfile ../..
+
+  run:
+    desc: Run the genesis service locally on port 5404.
+    cmds:
+      - go run cmd/service/main.go --config config/service.env.yaml
+
+  grpcui:
+    deps:
+      - dev:install-tools
+    cmds:
+      - |
+        grpcui \
+          -import-path ../../grpc/schema \
+          -proto ../../grpc/schema/genesis/v1/service.proto \
+          -plaintext \
+          localhost:5404

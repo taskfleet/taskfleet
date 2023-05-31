@@ -7,7 +7,7 @@ import (
 	"github.com/borchero/zeus/pkg/zeus"
 	v1 "go.taskfleet.io/grpc/gen/go/genesis/messages/v1"
 	genesis_v1 "go.taskfleet.io/grpc/gen/go/genesis/v1"
-	"go.taskfleet.io/services/genesis/internal/db"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -21,7 +21,7 @@ const (
 )
 
 func (s *Service) awaitShutdown(
-	ctx context.Context, instance *db.Instance, reason shutdownReason,
+	ctx context.Context, instance db.Instance, reason shutdownReason,
 ) {
 	logger := zeus.Logger(s.ctx)
 
@@ -41,7 +41,11 @@ func (s *Service) awaitShutdown(
 
 	logger.Debug("deleting instance")
 	err := s.provider.Instances().Delete(
-		ctx, providers.InstanceRef{ID: instance.ID, Zone: instance.Zone},
+		ctx, providers.InstanceMeta{
+			ID:           instance.ID,
+			ProviderID:   instance.ProviderID,
+			ProviderZone: instance.Zone,
+		},
 	)
 	errNotFound := false
 	if err != nil {

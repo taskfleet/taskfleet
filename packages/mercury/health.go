@@ -20,11 +20,11 @@ type grpcHealth struct {
 
 // Health returns an instance which allows setting the health status of the gRPC server. If the
 // gRPC server does not have the health service enabled, this function panics.
-func (i *Grpc) Health() Health {
-	if i.health == nil {
+func (g *Grpc) Health() Health {
+	if g.health == nil {
 		panic("grpc server does not have a health server set")
 	}
-	return &grpcHealth{health: i.health}
+	return &grpcHealth{health: g.health}
 }
 
 // SetHealthy implements the Health interface.

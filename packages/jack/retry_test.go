@@ -9,14 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testError = errors.New("test error")
+var errTest = errors.New("test error")
 
 func twoRetries(i *int) (int, error) {
 	if *i == 2 {
 		return 5, nil
 	}
 	*i += 1
-	return 0, testError
+	return 0, errTest
 }
 
 func TestWithRetry(t *testing.T) {
@@ -65,7 +65,7 @@ func TestWithCondition(t *testing.T) {
 	_, err := WithRetry(ctx, func() (int, error) {
 		return twoRetries(&i)
 	}, WithCondition(func(err error) bool {
-		return err != testError
+		return err != errTest
 	}))
 	assert.NotNil(t, err)
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/borchero/zeus/pkg/zeus"
 	genesis_v1 "go.taskfleet.io/grpc/gen/go/genesis/v1"
-	"go.taskfleet.io/services/genesis/internal/db"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

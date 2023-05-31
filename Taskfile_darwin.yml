@@ -1,8 +1,9 @@
 version: "3"
 tasks:
   install-system-tools:
-    desc: Install system tools for interactive development.
+    desc: Install system tools for interactive development via brew.
     vars:
+      DEPENDENCIES: buf pre-commit yq
       GO_REQUIRED: "1.19"
       GO_INSTALLED:
         sh: go version | cut -d' ' -f3 | cut -c3-
@@ -14,4 +15,6 @@ tasks:
       - sh: which docker
         msg: "It seems like you don't have docker installed. Install it from https://docs.docker.com/engine/install/."
     cmds:
-      - brew install buf
+      - brew install {{.DEPENDENCIES}}
+    status:
+      - brew list {{.DEPENDENCIES}}

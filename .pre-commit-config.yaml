@@ -1,4 +1,5 @@
 repos:
+  # ---------------------------------------- BASIC LAYOUT --------------------------------------- #
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -10,11 +11,16 @@ repos:
     rev: v2.7.1
     hooks:
       - id: prettier
+  # ------------------------------------------ LINTERS ------------------------------------------ #
   - repo: https://github.com/golangci/golangci-lint
     rev: v1.52.2
     hooks:
       - id: golangci-lint
         args: ["--go", "1.19"]
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 2.1.1
+    hooks:
+      - id: sqlfluff-fix
   - repo: https://github.com/bufbuild/buf
     rev: v1.19.0
     hooks:
@@ -22,10 +28,20 @@ repos:
         args: [grpc/schema]
       - id: buf-format
         args: [grpc/schema]
-      - id: buf-breaking
-        args:
-          - grpc/schema
-          - --against
-          - https://github.com/taskfleet/taskfleet.git#branch=main,subdir=grpc/schema
       - id: buf-generate
         args: [grpc/schema, "--template", grpc/schema/buf.gen.yaml]
+  # -------------------------------------- FILE GENERATION -------------------------------------- #
+  - repo: local
+    hooks:
+      - id: generate-mocks
+        name: task tests:generate-mocks
+        language: system
+        entry: task tests:generate-mocks
+        files: (^go\.mod$)|(\/\.mockdef\.yaml$)
+        pass_filenames: false
+      - id: generate-db
+        name: task db:generate
+        language: system
+        entry: task db:generate
+        files: (^go\.mod$)|(\/sqlc\.yaml$)|(.*\.sql$)
+        pass_filenames: false

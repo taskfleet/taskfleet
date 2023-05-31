@@ -8,7 +8,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"go.taskfleet.io/packages/jack"
 	"go.taskfleet.io/packages/postgres"
-	"go.taskfleet.io/services/genesis/internal/db"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	"go.taskfleet.io/services/genesis/internal/gc"
 	"go.taskfleet.io/services/genesis/internal/providers/impl/gcp"
 	"go.uber.org/zap"

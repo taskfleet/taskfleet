@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/borchero/zeus/pkg/zeus"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/jackc/pgx/v5/pgxpool"
+	v1 "go.taskfleet.io/grpc/gen/go/genesis/v1"
 	"go.taskfleet.io/packages/dymant"
 	"go.taskfleet.io/packages/dymant/kafka"
 	"go.taskfleet.io/packages/jack"
 	"go.taskfleet.io/packages/mercury"
-	"go.taskfleet.io/packages/postgres"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	"go.taskfleet.io/services/genesis/internal/api"
-	"go.taskfleet.io/services/genesis/internal/db"
 	"go.taskfleet.io/services/genesis/internal/ping"
 	"go.taskfleet.io/services/genesis/internal/providers/impl/gcp"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"
@@ -20,24 +20,16 @@ import (
 	"go.uber.org/zap"
 )
 
-type environment struct {
-	DB       postgres.ConnectionConfig
-	Template template.StoreConfig
-}
-
 // InitService initializes a new Genesis service from environment variables.
 func InitService(
 	ctx context.Context, health mercury.Health,
-) genesis.InstanceManagerServiceServer {
-	var env environment
-	envconfig.MustProcess("", &env)
-
-	database := func() db.Connection {
-		database := postgres.MustNewConnection(env.DB)
-		return db.NewConnection(database)
+) v1.GenesisServiceServer {
+	database := func() db.Querier {
+		pool := jack.Must(pgxpool.New(ctx, ""))
+		return db.New(pool)
 	}()
 	kafkaPublisher := func() dymant.Publisher {
-		client := kafka.MustNewClient(env.Kafka, zeus.Logger(zeus.WithName(ctx, "kafka")))
+		client := jack.Must(kafka.NewClient(env.Kafka, zeus.Logger(zeus.WithName(ctx, "kafka"))))
 		return client.MustPublisher(env.KafkaTopic, kafka.PublisherOptions{})
 	}()
 	gcpClient := func() providers.Provider {

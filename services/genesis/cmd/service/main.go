@@ -8,6 +8,7 @@ import (
 	"go.taskfleet.io/packages/eagle"
 	"go.taskfleet.io/packages/jack"
 	"go.taskfleet.io/packages/mercury"
+	"go.taskfleet.io/packages/postgres"
 	"go.taskfleet.io/services/genesis/cmd"
 	"go.taskfleet.io/services/genesis/cmd/service/setup"
 	"go.taskfleet.io/services/genesis/internal/template"
@@ -16,6 +17,7 @@ import (
 
 type config struct {
 	Kafka    cmd.KafkaConfig         `json:"kafka"`
+	Postgres postgres.Config         `json:"postgres"`
 	Minion   cmd.MinionConfig        `json:"minion"`
 	Template template.InstanceConfig `json:"template"`
 }

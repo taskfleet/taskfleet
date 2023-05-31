@@ -1,8 +1,8 @@
-name: Service Genesis - Integration
+name: CI - Service Genesis
 on:
+  push:
+    branches: [main]
   pull_request:
-    types:
-      - labeled
     paths:
       - services/genesis/**
       - packages/dymant/**
@@ -10,21 +10,37 @@ on:
       - packages/jack/**
       - packages/mercury/**
       - packages/postgres/**
-      - .github/workflows/svc-genesis-integration.yml
-  push:
-    branches:
-      - main
+      - .github/workflows/svc-genesis.yml
 
-# Cannot cancel in-progress since external resources must be torn down by the test
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  test:
-    name: Integration Test Genesis
-    if: github.event.label.name == 'integration-test'
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run tests
+        uses: ./.github/actions/go-test
+        with:
+          path: services/genesis/internal
+          flag: genesis
+
+  integration-tests:
+    name: Integration Tests
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency: # overwrite concurrency group as integration tests must be properly torn down
+      group: ${{ github.workflow }}-${{ github.sha }}
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v3

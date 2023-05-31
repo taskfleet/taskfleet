@@ -8,7 +8,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/google/uuid"
 	v1 "go.taskfleet.io/grpc/gen/go/genesis/v1"
-	"go.taskfleet.io/services/genesis/internal/db"
+	db "go.taskfleet.io/services/genesis/db/gen"
 	gcpinstances "go.taskfleet.io/services/genesis/internal/providers/impl/gcp/instances"
 	"go.taskfleet.io/services/genesis/internal/providers/instances"
 	providers "go.taskfleet.io/services/genesis/internal/providers/interface"

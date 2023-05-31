@@ -4,6 +4,9 @@ includes:
   dev:
     taskfile: ./Taskfile_{{OS}}.yml
     optional: true
+  genesis:
+    taskfile: ./services/genesis/
+    dir: ./services/genesis
 
 tasks:
   default:
@@ -15,6 +18,15 @@ tasks:
     desc: Install platform-agnostic tools for interactive development.
     cmds:
       - go install -mod=readonly $(go list -f "{{`{{range .Imports}}{{.}} {{end}}`}}" dev/tools.go)
+    sources:
+      - go.mod
+
+  dev:lint:
+    desc: Lint all files in this project with the pre-commit configuration.
+    deps:
+      - dev:install-system-tools
+    cmds:
+      - pre-commit run -a
 
   # ------------------------------------------- DOCKER ------------------------------------------ #
 
@@ -23,7 +35,7 @@ tasks:
     ignore_error: true
     desc: Run external services for testing via Docker.
     cmds:
-      - docker compose --file dev/docker-compose.yml up
+      - docker compose --project-name taskfleet --file dev/docker-compose.yml up
 
   # -------------------------------------------- gRPC ------------------------------------------- #
 
@@ -31,6 +43,8 @@ tasks:
     desc: Install tools required for generating Protobuf code.
     cmds:
       - go install -mod=readonly $(go list -f "{{`{{range .Imports}}{{.}} {{end}}`}}" grpc/dev/tools.go)
+    sources:
+      - go.mod
 
   grpc:generate:
     desc: Generate gRPC/Protobuf library from API and schema definitions.
@@ -39,6 +53,22 @@ tasks:
     cmds:
       - rm -rf grpc/gen
       - buf generate grpc/schema --template grpc/schema/buf.gen.yaml
+    sources:
+      - go.mod
+      - grpc/schema/**
+
+  # ------------------------------------------ DATABASE ----------------------------------------- #
+
+  db:generate:
+    desc: Generate Go code for database queries.
+    deps:
+      - grpc:install-tools
+    cmds:
+      - sqlc -f services/genesis/db/sqlc.yaml generate
+    sources:
+      - go.mod
+      - "**/sqlc.yaml"
+      - "**/*.sql"
 
   # ------------------------------------------- TESTS ------------------------------------------- #
 
@@ -47,4 +77,7 @@ tasks:
     deps:
       - dev:install-tools
     cmds:
-      - dev/mocks/generate.sh
+      - source dev/scripts/generate_mocks.sh
+    sources:
+      - go.mod
+      - "**/.mockdef.yml"
