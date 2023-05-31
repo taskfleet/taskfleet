@@ -1,7 +1,15 @@
 {
+  /* ------------------------------------------ GOLANG ----------------------------------------- */
   "go.testEnvVars": {
     "KAFKA_BOOTSTRAP_SERVER": "localhost:9092"
   },
+  "go.testEnvFile": "${workspaceRoot}/.env",
+  "go.testTags": "integration",
+  "go.testTimeout": "600s",
+  "gopls": {
+    "build.buildFlags": ["-tags", "integration"]
+  },
+  /* ------------------------------------------ PROTOC ----------------------------------------- */
   "protoc": {
     "options": ["--proto_path=${workspaceRoot}/grpc/schema"]
   }

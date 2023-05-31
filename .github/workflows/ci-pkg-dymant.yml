@@ -43,7 +43,7 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/go-test
         with:
-          flag: dymant
           path: packages/dymant
+          flag: dymant
         env:
           KAFKA_BOOTSTRAP_SERVER: localhost:9092

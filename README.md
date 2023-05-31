@@ -10,4 +10,4 @@
 [![CI - Package Jack](https://github.com/taskfleet/taskfleet/actions/workflows/ci-pkg-jack.yml/badge.svg?branch=main)](https://github.com/taskfleet/taskfleet/actions/workflows/ci-pkg-jack.yml)
 [![CI - Package Mercury](https://github.com/taskfleet/taskfleet/actions/workflows/ci-pkg-mercury.yml/badge.svg?branch=main)](https://github.com/taskfleet/taskfleet/actions/workflows/ci-pkg-mercury.yml)
 
-Taskfleet is a cloud-native task orchestrator for machine learning jobs.
+Taskfleet is a cloud- and container-native task orchestrator, optimized for machine learning jobs.

@@ -27,3 +27,12 @@ func MapKeys[K constraints.Ordered, V any](kv map[K]V) []K {
 	}
 	return result
 }
+
+// MapValues returns the values from a map as a slice.
+func MapValues[K constraints.Ordered, V any](kv map[K]V) []V {
+	result := []V{}
+	for _, value := range kv {
+		result = append(result, value)
+	}
+	return result
+}

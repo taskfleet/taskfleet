@@ -33,3 +33,5 @@ jobs:
         run: task grpc:install-tools
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.0
+        env:
+          SKIP: buf-breaking

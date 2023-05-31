@@ -22,3 +22,14 @@ updates:
       prefix: build
     labels:
       - dependencies
+  # Update Dockerfiles
+  - directory: /
+    open-pull-requests-limit: 5
+    package-ecosystem: docker
+    schedule:
+      interval: weekly
+      day: saturday
+    commit-message:
+      prefix: build
+    labels:
+      - dependencies

@@ -182,7 +182,7 @@ func (m *InstanceConfig) validate(all bool) error {
 	if _, ok := _InstanceConfig_CloudProvider_NotInLookup[m.GetCloudProvider()]; ok {
 		err := InstanceConfigValidationError{
 			field:  "CloudProvider",
-			reason: "value must not be in list [CLOUD_PROVIDER_UNSPECIFIED]",
+			reason: "value must not be in list [PROVIDER_UNSPECIFIED]",
 		}
 		if !all {
 			return err
@@ -190,7 +190,7 @@ func (m *InstanceConfig) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if _, ok := CloudProvider_name[int32(m.GetCloudProvider())]; !ok {
+	if _, ok := Provider_name[int32(m.GetCloudProvider())]; !ok {
 		err := InstanceConfigValidationError{
 			field:  "CloudProvider",
 			reason: "value must be one of the defined enum values",
@@ -292,7 +292,7 @@ var _ interface {
 	ErrorName() string
 } = InstanceConfigValidationError{}
 
-var _InstanceConfig_CloudProvider_NotInLookup = map[CloudProvider]struct{}{
+var _InstanceConfig_CloudProvider_NotInLookup = map[Provider]struct{}{
 	0: {},
 }
 

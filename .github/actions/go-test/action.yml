@@ -1,13 +1,16 @@
 name: Go Testing
-description: Test Go code and upload coverage to codecov.
+description: Test Go code and optionally upload coverage to codecov.
 
 inputs:
-  flag:
-    description: The flag to use for codecov.
-    required: true
   path:
     description: The path to the package to test.
     required: true
+  flag:
+    description: The flag to use for codecov.
+    default: ""
+  tags:
+    description: Tags to pass to `go test`, separated by comma.
+    default: ""
 
 runs:
   using: composite
@@ -20,6 +23,7 @@ runs:
       shell: bash
       run: |
         go test ./${{ inputs.path }}/... \
+          -tags "${{ inputs.tags }}" \
           -race \
           -coverprofile=coverage.out \
           -covermode=atomic \

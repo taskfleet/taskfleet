@@ -1,4 +1,4 @@
-name: gRPC Schema
+name: CD
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish to Buf Schema Registry
+    name: Publish to gRPC Schema
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

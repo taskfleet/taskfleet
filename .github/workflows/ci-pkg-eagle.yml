@@ -23,5 +23,5 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/go-test
         with:
-          flag: eagle
           path: packages/eagle
+          flag: eagle

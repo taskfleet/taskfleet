@@ -13,8 +13,8 @@ message Instance {
 
 // InstanceConfig describes core metadata about an instance, including its topology.
 message InstanceConfig {
-  // The cloud provider in which the instance is launched.
-  CloudProvider cloud_provider = 1 [(validate.rules).enum = {
+  // The provider that launches the instance.
+  Provider cloud_provider = 1 [(validate.rules).enum = {
     defined_only: true,
     not_in: [0]
   }];
@@ -56,12 +56,13 @@ enum GPUKind {
   GPU_KIND_TESLA_T4 = 6; // Launched 11/2018
   GPU_KIND_TESLA_A100 = 7; // Launched 05/2020
   GPU_KIND_TESLA_A10 = 8; // Launched 04/2021
-  // GPU_KIND_TESLA_H100 = 9; // Launched 03/2022
+  GPU_KIND_TESLA_A100_80GB = 9; // Launched 05/2020 -> 80 GB instead of 40 GB memory
+  // GPU_KIND_TESLA_H100 = 10; // Launched 03/2022
 }
 
-// CloudProvider describes the available cloud providers.
-enum CloudProvider {
-  CLOUD_PROVIDER_UNSPECIFIED = 0;
-  CLOUD_PROVIDER_AMAZON_WEB_SERVICES = 1;
-  CLOUD_PROVIDER_GOOGLE_CLOUD_PLATFORM = 2;
+// Provider describes the available providers to launch instances.
+enum Provider {
+  PROVIDER_UNSPECIFIED = 0;
+  PROVIDER_AMAZON_WEB_SERVICES = 1;
+  PROVIDER_GOOGLE_CLOUD_PLATFORM = 2;
 }

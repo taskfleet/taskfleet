@@ -156,14 +156,14 @@ func runTLSTest(
 
 //-------------------------------------------------------------------------------------------------
 
-func (i *Grpc) runBuf(ctx context.Context, listener *bufconn.Listener) error {
+func (g *Grpc) runBuf(ctx context.Context, listener *bufconn.Listener) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		return i.Server.Serve(listener)
+		return g.Server.Serve(listener)
 	})
 	eg.Go(func() error {
 		<-ctx.Done()
-		i.Server.Stop()
+		g.Server.Stop()
 		return ctx.Err()
 	})
 	err := eg.Wait()
